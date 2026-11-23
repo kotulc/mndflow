@@ -4,7 +4,7 @@
  *  presentation is. */
 
 import { useEffect, useState } from "react";
-import { path, pace_of, play_at, play_into, play_next, play_out, play_prev, play_start,
+import { diagram_kind, path, pace_of, play_at, play_into, play_next, play_out, play_prev, play_start,
          presentations_of, stop_of, used_model, type Graph, type Hop, type Id,
          type Play } from "@mnd/core";
 import { hop_trace, ACROSS, type Scene } from "@mnd/views";
@@ -179,10 +179,12 @@ export function showing_of(graph: Graph, layer: Id | null, scene: Scene,
   /** **The current block** (the user, 2026-11-21): the card the step just lit lands on is ringed
    *  with it, so where the presentation is reads at a glance. */
   const landed = last?.relation ? lift(graph.edges[last.relation]?.to ?? "") : undefined;
-  /** **The step now**: the last shown's line, drawn over the rest on a diagram. */
+  /** **The step now**: the last shown's line, drawn over the rest on a diagram; a datum travels
+   *  it only where lines carry data, on a dataflow (the user, 2026-11-22). */
   const now = last?.relation ? [last.relation, `${ACROSS}${last.relation}`] : [];
+  const flows = !!layer && diagram_kind(graph, layer) === "dataflow";
   return { ring: [...new Set([...(at && !whole ? [at] : []), ...marks,
-                              ...(landed ? [landed] : [])])], keep, lines: drawn_lines, now,
+                              ...(landed ? [landed] : [])])], keep, lines: drawn_lines, now, flows,
            steps: legs.length ? { blocks: [], lines: [], legs,
                                   ...(last?.relation ? {} : { still: true }) } : null };
 }

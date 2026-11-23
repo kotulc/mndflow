@@ -41,6 +41,7 @@ export function Bar({ p, featured }: { p: PresentationProps; featured: readonly 
         <Icon name="play" size={15} solid />
       </button>
       <button type="button" title="the next step" disabled><Icon name="skip_next" size={13} solid /></button>
+      <button type="button" title="stop playing" disabled><Icon name="halt" size={11} solid /></button>
       <span className="deck-name">
         {featured.length > 1 ? (
           <select aria-label="presentation" value={at} onChange={(e) => set_at(Number(e.target.value))}>

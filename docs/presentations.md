@@ -120,12 +120,12 @@ presentations:
 | 2 | `at` is ringed; everything that is neither `at`, around it, inside it, nor a step's end is dimmed (not when `at` is the system itself) | with 1 |
 | 3 | the camera moves to fit `fit` with a margin, never past 4× | 1.1 s, eased |
 | 3b | with `show`: the camera flies into the block as far as its diagram will stand, then the diagram is entered (as entering a chip does today) | with 3 |
-| 4 | each step in turn: its sentence appears in the tray and is current; a relation draws from its start (1 s), a datum travelling it; earlier relations fade to 40% on a map, a soft accent on a diagram; a mark rings its block | one step every `pace` (1.7 s) |
+| 4 | each step in turn: its sentence appears in the tray and is current; a relation draws from its start (1 s), a datum travelling it only on a dataflow, where lines carry data (the user, 2026-11-22); earlier relations fade to 40% on a map, a soft accent on a diagram; a mark rings its block | one step every `pace` (1.7 s) |
 
 - **lines run under chips**: a relation line passes beneath every chip and ends at its target's edge; its label sits above everything
 - **labels never cover**: a label goes at the point along its line nearest the middle where it covers no chip, heading or other label; plain text with a halo, no pill
 - **nothing else moves**: no layout change but opening and closing; no second drawing
-- **the step now reads where lines overlap** (the user, 2026-11-22): on a diagram, lines no step has shown dim, earlier steps' lines go a soft accent, and the step now is raised over every line and card on a halo of the ground, drawn in the accent with its datum; on a map a leg is never named on the line (no pill, no badge): the step's words are the tray's
+- **the step now reads where lines overlap** (the user, 2026-11-22): on a diagram, lines no step has shown dim (a sequence's lifelines stay, being its frame), earlier steps' lines go a soft accent, and the step now is raised over every line and card on a halo of the ground, drawn in the accent (a datum travelling it on a dataflow alone); on a map a leg is never named on the line (no pill, no badge): the step's words are the tray's
 
 **Played through, as a video is** (the user, 2026-11-21): steps build at the pace; once a stop's are all shown it holds (at least 2.5 s), then goes on — into the stop's sub presentation where it leads into one, else the next stop, and out again after a sub presentation's last — and pauses at the very end. Paused, or at the *on click* pace, nothing moves on its own.
 

@@ -3,15 +3,11 @@
  *  what it passes, an arrow just inside its target, **heavier the more it gathers** (`weight`, a
  *  few steps). **No pill or badge on a leg** (the user, 2026-11-22): what it carries is said on
  *  hover, and a step's words in the tray. **A presentation's steps** (`steps`,
- *  docs/presentations.md): earlier legs faded, the last drawn from its start, its datum
- *  travelling along it. */
+ *  docs/presentations.md): earlier legs faded, the last drawn from its start; no datum, a leg
+ *  being no data flow (the user, 2026-11-22). */
 
-import { useEffect, useRef } from "react";
 import { useStore } from "@xyflow/react";
 import type { Leg, Trace } from "@mnd/views";
-
-/** How long a step's line takes to draw, and its datum to travel it, in seconds. */
-const DRAW = 1;
 
 export function Traced({ trace, as = "path" }: { trace: Trace; as?: "path" | "steps" }) {
   const head = `mnd-trace-head-${as}`;
@@ -39,7 +35,6 @@ export function Traced({ trace, as = "path" }: { trace: Trace; as?: "path" | "st
             <polyline className="halo" points={points} />
             <polyline className="run" points={points} pathLength={1} markerEnd={`url(#${head})`}
                       {...(l.both ? { markerStart: `url(#${head})` } : {})} />
-            {now(i) ? <Datum leg={l} /> : null}
           </g>
         );
       })}
@@ -51,19 +46,6 @@ export function Traced({ trace, as = "path" }: { trace: Trace; as?: "path" | "st
  *  steps at most (0 for one). */
 function weight(n: number): number {
   return Math.min(3, Math.floor(Math.log2(Math.max(1, n))));
-}
-
-/** The datum travelling along a step's line as it draws, started as it mounts: the drawing
- *  outlives it, so its timeline began before. */
-function Datum({ leg }: { leg: Leg }) {
-  const d = `M${leg.run.map((p) => `${p.x},${p.y}`).join(" L")}`;
-  const motion = useRef<SVGAnimateMotionElement>(null);
-  useEffect(() => { motion.current?.beginElement(); }, []);
-  return (
-    <circle className="datum" r={4}>
-      <animateMotion ref={motion} dur={`${DRAW}s`} path={d} begin="indefinite" fill="freeze" />
-    </circle>
-  );
 }
 
 /** How far a leg's arrow reaches into its target on screen, past its border (2026-11-18). */

@@ -162,9 +162,9 @@ fieldset.fields { padding: 0; }
    same width on every tab that has one. One column under 560 px. */
 .tray-body {
   container-type: inline-size;
-  --pad: 12px;
-  --gap: 16px;
-  --stack: 8px;
+  --pad: 18px;
+  --gap: 28px;
+  --stack: 16px;
 }
 .panel, .reads, .ov { --lead: clamp(220px, 26cqi, 320px); }
 @container (max-width: 559px) {
@@ -324,12 +324,6 @@ fieldset.fields { padding: 0; }
   font-size: 12px;
   font-weight: 600;
 }
-/* Its name folds it: the chevron quiet, the name the section's own ink. */
-.sec-fold { display: inline-flex; align-items: center; gap: 4px; padding: 0; border: 0;
-            background: none; color: inherit; font: inherit; cursor: pointer; }
-.sec-fold > svg { color: var(--faint); }
-.sec-fold:hover > svg { color: var(--accent); }
-.sec.shut { gap: 0; }
 .sec-about {
   width: 13px;
   height: 13px;
@@ -562,45 +556,54 @@ fieldset.fields { padding: 0; }
 .deck-summary.on, .deck-steps li.on { color: var(--text); border-left-color: var(--accent);
   background: color-mix(in oklch, var(--accent) 9%, transparent); }
 
-/* ── **The overview's rhythm** (the user, 2026-11-22: too dense to read). Room before
-   everything else: sections well apart, each ruled off from the one above; its name clear of
-   its body; reading type a size up with open leading; rows and chips that breathe. Scoped to
-   the overview, so the denser editing tabs keep their own. ── */
-.ov { --pad: 18px; --gap: 28px; --stack: 16px; padding: 18px 18px 40px; }
-.ov-answers.lists { row-gap: 22px; }
-/* **A section's rule is its own** (the user, 2026-11-22): under its body, so it folds away with
-   it; the last section draws none. */
-.ov-answers .sec > .sec-body { padding-bottom: 22px; border-bottom: 1px solid var(--divider); }
-.ov-answers > :last-child > .sec-body {
-  padding-bottom: 0; border-bottom: 0; }
+/* ── **The tray's rhythm, on every tab** (the user, 2026-11-22: the overview's look, everywhere).
+   Room before everything else: sections apart by space alone, never folded or ruled off; a
+   name clear of its body; reading type a size up with open leading; rows and chips that
+   breathe. ── */
+.ov, .reads, .panel { padding-bottom: 40px; }
+.tray-body .lists { row-gap: 22px; }
 .ov-answers > .trail { padding-bottom: 2px; }
-.ov .sec { gap: 12px; }
-.ov .sec-name { font-size: 13px; font-weight: 600; letter-spacing: 0.02em; }
-/* The chevron hangs in the margin, so a section's name stands where its words do. */
-.ov .sec-fold > svg { color: var(--muted); margin-left: -15px; }
+.tray-body .sec { gap: 12px; }
+.tray-body .sec-name { font-size: 13px; font-weight: 600; letter-spacing: 0.02em; }
 /* Its *i* waits for the pointer: a column of them read as noise. */
-.ov .sec-about { opacity: 0; transition: opacity 0.15s; }
-.ov .sec-name:hover .sec-about, .ov .sec-about:focus { opacity: 1; }
-.ov .sec-body { column-gap: 16px; row-gap: 2px; }
-.ov .sec-body > * + .chips, .ov .why + .chips { margin-top: 4px; }
-.ov .why { font-size: 13px; line-height: 1.65; }
-.ov .gap { padding: 6px 10px; }
-.ov .chips { gap: 6px; }
-.ov .chip-like, .ov .chips .chip { min-height: 22px; padding: 1px 8px; }
-.ov .list + .list { margin-top: 20px; }
-/* One rule a boundary: the section's own is the strong one; a list's band and rows go soft,
-   and its last row draws none, so no two rules stack. */
-.ov .list > .band { padding-bottom: 6px; margin-bottom: 2px; font-size: 10px; font-weight: 500;
-                    border-bottom-color: color-mix(in oklch, var(--border) 50%, transparent); }
-.ov .list > .item { min-height: 28px; padding-block: 3px; font-size: 12.5px;
-                    border-bottom-color: color-mix(in oklch, var(--border) 40%, transparent); }
-.ov .list > .item:last-child { border-bottom-color: transparent; }
+.tray-body .sec-about { opacity: 0; transition: opacity 0.15s; }
+.tray-body .sec-name:hover .sec-about, .tray-body .sec-about:focus { opacity: 1; }
+.tray-body .sec-body { column-gap: 16px; row-gap: 2px; }
+.tray-body .sec-body > * + .chips, .tray-body .why + .chips { margin-top: 4px; }
+.tray-body .why { font-size: 13px; line-height: 1.65; }
+.tray-body .gap { padding: 6px 10px; }
+.tray-body .chips { gap: 6px; }
+.tray-body .chip-like, .tray-body .chips .chip { min-height: 22px; padding: 1px 8px; }
+.tray-body .list + .list { margin-top: 20px; }
+/* One soft rule a boundary: a list's band and rows go soft, and its last row draws none. */
+.tray-body .list > .band { padding-bottom: 6px; margin-bottom: 2px; font-size: 10px;
+  font-weight: 500; border-bottom-color: color-mix(in oklch, var(--border) 50%, transparent); }
+.tray-body .list > .item { min-height: 28px; padding-block: 3px; font-size: 12.5px;
+  border-bottom-color: color-mix(in oklch, var(--border) 40%, transparent); }
+.tray-body .list > .item:last-child { border-bottom-color: transparent; }
 .ov .trail { font-size: 12.5px; gap: 0 8px; }
 .ov-answers .content.text > .read > .empty { padding: 6px 10px; }
+/* The editing tabs alike: a rail's head as a section's name; key rows and table rows as list
+   rows, their labels and heads as a list's band. */
+.tray-body .rail > h5 { margin: 0 0 12px; font-size: 13px; font-weight: 600; letter-spacing: 0.02em; }
+.tray-body .rows { font-size: 12.5px; }
+.tray-body .rows > .row { min-height: 34px; padding-block: 4px;
+  border-bottom-color: color-mix(in oklch, var(--border) 40%, transparent); }
+.tray-body .rows > .row:last-child { border-bottom-color: transparent; }
+.tray-body .rows > .row > label { color: var(--muted); font-size: 10px; font-weight: 500; }
+.tray-body .contents-table { font-size: 12.5px; }
+.tray-body .contents-table th { padding-block: 0 6px; color: var(--muted); font-size: 10px;
+  font-weight: 500; border-bottom-color: color-mix(in oklch, var(--border) 50%, transparent); }
+.tray-body .contents-table td { padding-block: 6px;
+  border-bottom-color: color-mix(in oklch, var(--border) 40%, transparent); }
+/* Past one column the choices stand off the card column as the answers do. */
+@container (min-width: 560px) {
+  .panel.element > .side { padding-left: var(--gap); border-left: 1px solid var(--divider); }
+}
 /* No card (the workspace): no room kept for one. */
 .ov:not(:has(> .ov-card)) { grid-template-areas: "pic" "answers"; }
 @container (min-width: 560px) {
   .ov:not(:has(> .ov-card)) { grid-template-areas: "pic answers" "pic answers"; }
-  /* Past one column the answers keep a reading measure. */
-  .ov > .ov-answers > * { max-width: 720px; }
+  /* Past one column the answers keep a reading measure, on every tab. */
+  .ov > .ov-answers > *, .reads > .lists > .sec { max-width: 720px; }
 }

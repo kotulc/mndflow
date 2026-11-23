@@ -2,41 +2,25 @@
  *  band, rows on shared columns, an empty element's one sentence, the tab's filter rows, and the
  *  left column — the card, then what the tab puts under it. */
 
-import { useState, type KeyboardEvent, type ReactNode } from "react";
+import { type KeyboardEvent, type ReactNode } from "react";
 import { owner_of, shown_name, type Graph, type Id } from "@mnd/core";
-import { Icon } from "@mnd/theme";
 import { entry_look, kind_of, tint_attrs, wire_of, wire_tint } from "@mnd/views";
 import { Faces } from "./Faces";
 import { Scope } from "./Where";
 
 /** **A section names itself**, semibold in the body's ink, with an *i* whose tip says what it is.
  *  It carries no count: its lists do. `parts`: its body holds parts set apart, not one list.
- *  **Every section folds** (2026-11-22): its name opens and shuts it, remembered by name for
- *  every element this session, so a reader shuts what they never read once. `head` takes the name's place. */
+ *  **Never folds, never ruled off** (the user, 2026-11-22): sections stand apart by space alone.
+ *  `head` takes the name's place. */
 export function Section({ name, about, parts = false, head, children }: {
   name: string; about: string; parts?: boolean; head?: ReactNode; children?: ReactNode }) {
-  const [shut, set_shut] = useState(() => folded(name));
-  const fold = () => { set_shut(!shut); remember(name, !shut); };
   return (
-    <section className={["sec", parts ? "parts" : "", shut ? "shut" : ""].filter(Boolean).join(" ")}>
-      <h5 className="sec-name">
-        <button type="button" className="sec-fold" aria-expanded={!shut}
-                title={shut ? `show ${name}` : `hide ${name}`} onClick={fold}>
-          <Icon name={shut ? "unfold_all" : "fold_all"} size={11} />
-          {head ? null : name}
-        </button>
-        {head ?? <i className="sec-about" title={about}>i</i>}
-      </h5>
-      {shut ? null : <div className="sec-body">{children}</div>}
+    <section className={parts ? "sec parts" : "sec"}>
+      <h5 className="sec-name">{head ?? <>{name}<i className="sec-about" title={about}>i</i></>}</h5>
+      <div className="sec-body">{children}</div>
     </section>
   );
 }
-
-/** **The sections shut, by name**, for the session: every element's overview opens with them
- *  shut. Held here, never stored: the browser is the app's to bind (test `law`). */
-const SHUT = new Set<string>();
-const folded = (name: string) => SHUT.has(name);
-const remember = (name: string, shut: boolean) => { if (shut) SHUT.add(name); else SHUT.delete(name); };
 
 /** One row: its mark, its name, its kind quieter, and what it says at the right; where it is
  *  picked, `onPick`, and whether it is the one picked, `on`, as a filter row is. */

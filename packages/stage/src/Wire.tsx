@@ -74,10 +74,10 @@ export const HopsContext = createContext<ReadonlyMap<string, readonly { x: numbe
   new Map());
 
 /** **The lines of a presentation's step now** (stage `Showing.now`): each haloed and drawn in
- *  over the rest, a datum travelling along it. */
+ *  over the rest; on a dataflow a datum travels it (Stage `flows`). */
 export const NowContext = createContext<ReadonlySet<string>>(new Set());
 
-/** How long a step's line takes to draw, and its datum to travel it, in seconds (as `Traced`). */
+/** How long a step's line takes to draw, and its datum to travel it, in seconds. */
 const DRAW = 1;
 
 /** Where a name's box is set from, by the side of its leg it sits on. */

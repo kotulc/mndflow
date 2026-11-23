@@ -23,9 +23,9 @@
 | **where it sits** | *in what order?* | its order in its room, with earlier and later (editor only) |
 | **text** | *what does it say?* | the own text of what opens onto a view, or of a document, last |
 
-**Every section folds** by its name (2026-11-22), remembered by name for the session, so a reader shuts what they never read once. Its chevron hangs in the margin, so its name stands where its words do; its rule is under its body, so it folds away with it, and the last draws none.
+**Sections never fold and are never ruled off** (the user, 2026-11-22, reversing the folds of the same day): they stand apart by space alone.
 
-**The overview's rhythm** (the user, 2026-11-22: room before density): sections 22 px apart; 12 px from a name to its body; names 13 px semibold; reading text 13 px with open leading; list rows 28 px, one soft rule a row and none under the last; a section's *i* only under the pointer; past one column the answers keep a 720 px measure. Scoped to the overview: the editing tabs keep their own density.
+**The overview's rhythm** (the user, 2026-11-22: room before density): sections 22 px apart; 12 px from a name to its body; names 13 px semibold; reading text 13 px with open leading; list rows 28 px, one soft rule a row and none under the last; a section's *i* only under the pointer; past one column the answers keep a 720 px measure. **Every tab takes it** (the user, 2026-11-22): sections, lists, key rows and tables alike, the choices column standing off the card column by a rule.
 
 **No buttons to open** (2026-11-22): opening is a double-click on the canvas or the explorer.
 

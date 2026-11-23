@@ -668,8 +668,8 @@
 
 /* ── A model's overview (views `overview.ts`, docs/diagrams/tree.md) ── */
 
-/* **A presentation's steps**: earlier ones faded to 40%, the last drawn from its start, its datum
-   travelling along it (docs/presentations.md *How a stop plays*). */
+/* **A presentation's steps**: earlier ones faded to 40%, the last drawn from its start
+   (docs/presentations.md *How a stop plays*). */
 .mnd-trace.steps .past { opacity: 0.4; }
 .mnd-trace.steps .now .run {
   stroke-dasharray: 1;
@@ -678,17 +678,15 @@
   animation: mnd-draw 1s ease-out forwards;
 }
 .mnd-trace.steps .run { stroke-width: calc(2px / var(--zoom, 1)); }
-.mnd-trace.steps .datum { fill: var(--accent); stroke: var(--bg); stroke-width: 1.5; }
 @keyframes mnd-draw { to { stroke-dashoffset: 0; } }
 @media (prefers-reduced-motion: reduce) {
   .mnd-trace.steps .now .run { animation-duration: 0.01s; }
-  .mnd-trace.steps .datum { display: none; }
 }
 
 /* **A step on a diagram** (the user, 2026-11-22: unclear where many lines overlap): lines no
    step has shown dim; earlier steps' lines are a soft accent (Stage `PAST`); the step now is
    raised over everything (Flow `NOW_Z`), on a halo of the ground, its faint stroke drawn over in
-   the accent, a datum travelling it. */
+   the accent; on a dataflow a datum travels it. */
 .stage.stepping .react-flow__edge, .stage.stepping .mnd-wire-name,
 .stage.stepping .mnd-wire-end { opacity: 0.2; transition: opacity 120ms; }
 .mnd-wire-halo { fill: none; stroke: var(--bg); stroke-width: 8; stroke-linecap: round;
@@ -698,10 +696,14 @@
 .mnd-wire-now { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round;
                 stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1;
                 animation: mnd-draw 1s ease-out forwards; pointer-events: none; }
-.mnd-wire-datum { fill: var(--accent); stroke: var(--bg); stroke-width: 1.5; pointer-events: none; }
+/* The datum only where lines carry data (a dataflow, Stage `flows`); elsewhere the line drawn in
+   says it. */
+.mnd-wire-datum { display: none; fill: var(--accent); stroke: var(--bg); stroke-width: 1.5;
+                  pointer-events: none; }
+.stage.flows .mnd-wire-datum { display: inline; }
 @media (prefers-reduced-motion: reduce) {
   .mnd-wire-now { animation-duration: 0.01s; }
-  .mnd-wire-datum { display: none; }
+  .stage.flows .mnd-wire-datum { display: none; }
 }
 
 /* **Opening and closing a box**: a small square before a box's title, in a closed chip's foot. */
