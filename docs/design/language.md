@@ -36,7 +36,7 @@
 | **card** | diagram; on the map only as a tile | *what is this part?* | 0–3 | full border, seats on its walls, stacked edge if it opens |
 | **line** | diagram | *what joins these two parts, and which way?* | 0–3 | a stroke between seats |
 | **hover card** | over any of the above | *everything about it, briefly* | 4 | floating, shadowed, read only |
-| **overview** | tray, first tab | *why it matters, how it is used, where it lives* | 4 | tray panel: picture left, answers right |
+| **overview** | tray, first tab | *its description, presentations, how it is used, where it lives* | 4 | tray panel: picture left, answers right |
 | **settings** | tray, card and settings tabs | *how it draws* | face + keys | the face drawn large, one row per key |
 | **row** | explorer | *where is it in the tree?* | 0–1 | colour edge, icon, name, system marks, count |
 

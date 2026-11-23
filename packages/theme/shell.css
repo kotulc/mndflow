@@ -401,6 +401,9 @@ input:focus { outline: none; border-color: var(--accent); }
 /* The body scrolls rather than pushing content out of reach. */
 .tray.open .tray-body { overflow: auto; }
 
+/* **The tray's foot** (the player, 2026-11-22): held under the body on every tab. */
+.tray-foot { flex: none; border-top: 1px solid var(--divider); background: var(--surface); }
+
 /* Tabs on the body's own ground. */
 .tray-tabs {
   position: sticky;

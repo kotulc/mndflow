@@ -3,7 +3,6 @@
  *  `onAct` the workspace itself is read only; its display still answers `onDisplay`, since how a
  *  drawing looks is the session's and changes nothing. */
 
-import type { ReactNode } from "react";
 import { all_defs, def_at, file_name, package_of, packages, SCHEMA, shown_name,
          type Act, type Graph, type Id } from "@mnd/core";
 import { Band, Body, Check, Line, NOOP, Pick } from "./Body";
@@ -36,11 +35,7 @@ const CORNERS = [{ value: "top", word: "top" }, { value: "bottom", word: "bottom
 /** **A scope's answers** — the workspace's or a package's — in the overview's sections: why it
  *  matters, its name and what it is for, editable on the workspace; how it is made, in counts;
  *  the workspace's file. Given no `onAct`, read only. */
-export function ScopeAnswers({ graph, id, onAct = NOOP, deck = null }: {
-  graph: Graph; id: Id; onAct?: Act;
-  /** What follows its description: the overview's presentations. */
-  deck?: ReactNode;
-}) {
+export function ScopeAnswers({ graph, id, onAct = NOOP }: { graph: Graph; id: Id; onAct?: Act }) {
   const b = graph.blocks[id];
   if (!b) return null;
   const whole = id === graph.root;
@@ -81,7 +76,6 @@ export function ScopeAnswers({ graph, id, onAct = NOOP, deck = null }: {
           </fieldset>
         )}
       </Section>
-      {deck}
       <Section name="how it is made" about="What it holds, counted">
         <div className="stat">
           {blocks ? <span><b>{blocks}</b> blocks</span> : null}

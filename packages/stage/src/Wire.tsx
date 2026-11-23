@@ -1,6 +1,6 @@
 /** What a relationship looks like. */
 
-import { createContext, useContext, useState, type CSSProperties } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type CSSProperties } from "react";
 import { BaseEdge, EdgeLabelRenderer, Position, type EdgeProps } from "@xyflow/react";
 import { avoided_run, crossed, drawn, end_words, heads, line_shows, name_box, route, BARE, NAMED,
          UNIT, type LineEdge, type NameBox, type Wire as Look } from "@mnd/views";
@@ -73,6 +73,13 @@ export const NamesContext = createContext<ReadonlyMap<string, NameBox>>(new Map(
 export const HopsContext = createContext<ReadonlyMap<string, readonly { x: number; y: number }[]>>(
   new Map());
 
+/** **The lines of a presentation's step now** (stage `Showing.now`): each haloed and drawn in
+ *  over the rest, a datum travelling along it. */
+export const NowContext = createContext<ReadonlySet<string>>(new Set());
+
+/** How long a step's line takes to draw, and its datum to travel it, in seconds (as `Traced`). */
+const DRAW = 1;
+
 /** Where a name's box is set from, by the side of its leg it sits on. */
 const BESIDE: Record<NameBox["side"], (b: NameBox) => string> = {
   above: (b) => `translate(${b.at.x}px, ${b.at.y - NAMED.lift}px) translate(-50%, -50%)`,
@@ -122,6 +129,7 @@ export function Wire(props: EdgeProps<LineEdge>) {
   const cards = useContext(CardsContext);
   const names = useContext(NamesContext);
   const hops = useContext(HopsContext);
+  const now = useContext(NowContext).has(id);
   /** A wall's handle faces into the room; the end a line from outside meets faces out
    *  (views `LineData.outer`). */
   const facing = (way: "from" | "to", at: Position) => (data?.outer === way ? TURNED[at] : at);
@@ -166,9 +174,11 @@ export function Wire(props: EdgeProps<LineEdge>) {
 
   return (
     <>
-      <g className={["mnd-wire", loud ? "hot" : "", selected ? "picked" : ""]
+      <g className={["mnd-wire", loud ? "hot" : "", selected ? "picked" : "", now ? "now" : ""]
            .filter(Boolean).join(" ")} {...attrs} style={tint}
          onMouseEnter={() => set_hot(true)} onMouseLeave={() => set_hot(false)}>
+        {/* The step now: a halo of the ground under it, so it reads across what it overlaps. */}
+        {now ? <path className="mnd-wire-halo" d={path} /> : null}
         <BaseEdge id={id} path={path} style={style}
                   {...(shows.anchors || loud
                     ? { markerStart: head_url(anchor(end.from)),
@@ -176,6 +186,12 @@ export function Wire(props: EdgeProps<LineEdge>) {
         {/* A double line is two strokes, not a thicker one. */}
         {look.border_style === "double"
           ? <path className="mnd-wire-core" d={path} /> : null}
+        {now ? (
+          <>
+            <path className="mnd-wire-now" d={path} pathLength={1} />
+            <Datum path={path} />
+          </>
+        ) : null}
         {(["from", "to"] as const).filter((way) => crossed(data, way)).map((way) => (
           <path key={way} className="mnd-wire-cross"
                 d={cross_at(run, way)} />
@@ -207,6 +223,18 @@ export function Wire(props: EdgeProps<LineEdge>) {
         </EdgeLabelRenderer>
       ) : null}
     </>
+  );
+}
+
+/** **The datum travelling the step now**, started as it mounts: the edges' drawing outlives it,
+ *  so its timeline began long before. */
+function Datum({ path }: { path: string }) {
+  const motion = useRef<SVGAnimateMotionElement>(null);
+  useEffect(() => { motion.current?.beginElement(); }, []);
+  return (
+    <circle className="mnd-wire-datum" r={4}>
+      <animateMotion ref={motion} dur={`${DRAW}s`} path={path} begin="indefinite" fill="freeze" />
+    </circle>
   );
 }
 

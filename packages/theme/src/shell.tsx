@@ -55,12 +55,14 @@ export type TrayFrameProps<T extends string = string> = {
   /** Extra controls on the tab strip (e.g. reset style). */
   tabTools?: ReactNode;
   children?: ReactNode;
+  /** **Held at the tray's foot**, under the scrolling body, on every tab: the player. */
+  foot?: ReactNode;
 };
 
 /** Collapsible tray shell: bar, tabs, and a body slot — no graph types. */
 export function TrayFrame<T extends string>({
   open, onOpen, big = false, onBig, word, name, note, kind, role, tint, facts, tabs, off = [], tab, onTab,
-  tools, tabTools, children,
+  tools, tabTools, children, foot,
 }: TrayFrameProps<T>) {
   const on_bar = (e: MouseEvent) => {
     if ((e.target as HTMLElement).closest("button")) return;
@@ -113,6 +115,7 @@ export function TrayFrame<T extends string>({
           {children}
         </div>
       ) : null}
+      {open && foot ? <div className="tray-foot">{foot}</div> : null}
     </section>
   );
 }

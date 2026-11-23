@@ -1,14 +1,15 @@
 /** The overview tab: every element's first, lines and scopes included, **one layout for all**
  *  (2026-11-22). The lead column: its card, then where it lives — its model or package, the
  *  element lit. The answers column, always in this order, each a section that folds: its path,
- *  then **its description first** (the user, 2026-11-22), the presentations that show it (or the
- *  one playing), what it holds, how it is used, where it sits, and its text. A section with nothing to say is left out; the
- *  editor's gaps are quiet rows. **Only its own answers**: nothing borrowed from its definition;
- *  its counts are the tray head's. It reflows by the tray's width. */
+ *  then **its description first** (the user, 2026-11-22), what it holds, how it is used, where it
+ *  sits, and its text. **While a presentation plays, the answers column is the stop** (`Steps`).
+ *  A section with nothing to say is left out; the editor's gaps are quiet rows. **Only its own
+ *  answers**: nothing borrowed from its definition; its counts are the tray head's. It reflows by
+ *  the tray's width. */
 
 import { useMemo, type MouseEvent, type ReactNode } from "react";
 import { appearances_of, behaviours_of, children, class_of, def_at, def_of, definition_uses,
-         diagram_kind, edges_in, ends_of, featured, is_model, is_notation, is_behaviour,
+         diagram_kind, edges_in, ends_of, is_model, is_notation, is_behaviour,
          is_group, is_reference, layer_of, may_retype, object_of, of_ref, owner_of, package_of,
          role_of, shown_name, stands_for, stood_def, tag_at, tags_of, used_model, BASE_PACKAGE,
          DIAGRAM_QUESTIONS, DIAGRAMS, type Act, type Block, type Graph, type Id,
@@ -18,7 +19,7 @@ import { hover_of, kind_of, told, wire_of, wire_tint, type Hovered } from "@mnd/
 import { Content } from "./Content";
 import { Card, Empty, LineCard, List, Painted, Section, type Item } from "./Lists";
 import { Scope, Trail, Where } from "./Where";
-import { Presentation, type PresentationProps } from "./Presentation";
+import { Steps, type PresentationProps } from "./Presentation";
 import { ScopeAnswers } from "./Workspace";
 
 export type OverviewProps = {
@@ -28,7 +29,7 @@ export type OverviewProps = {
   /** The side the canvas looks at, so the overview offers what reading there does, and the way
    *  across to the other side. */
   lists?: "domain" | "structure";
-  /** The presentation playing, or how one is started: the answers' first section. */
+  /** The presentation playing — the answers column is its stop — or how one is started. */
   presenting?: PresentationProps;
 };
 
@@ -38,16 +39,16 @@ export function Overview({ graph, id, onAct, lists, presenting }: OverviewProps)
   const read = useMemo(() => (graph.blocks[id]?.parent
     ? hover_of(graph, id, !!graph.blocks[id]?.def || lists === "domain") : null),
   [graph, id, lists]);
-  const shows = useMemo(() => featured(graph, id), [graph, id]);
   const e = graph.edges[id];
   const b = graph.blocks[id];
-  /** **The presentations, first after its path**: the one playing, else those showing it. */
-  const deck = presenting ? <Presentation p={presenting} featured={shows} /> : null;
+  /** **The stop playing, in place of the answers** (the user, 2026-11-22). */
+  const playing = presenting?.name ? <Steps {...presenting} /> : null;
   if (e) {
     return (
-      <Shell lead={<LineCard graph={graph} id={id} />} pic={<Where graph={graph} id={id} />}>
+      <Shell lead={<LineCard graph={graph} id={id} />} pic={<Where graph={graph} id={id} />}
+             playing={playing}>
         <Trail graph={graph} id={id} />
-        <LineAnswers graph={graph} e={e} deck={deck} />
+        <LineAnswers graph={graph} e={e} />
       </Shell>
     );
   }
@@ -58,13 +59,14 @@ export function Overview({ graph, id, onAct, lists, presenting }: OverviewProps)
     const whole = id === graph.root;
     return (
       <Shell lead={whole ? null : <Card graph={graph} id={id} />}
-             pic={whole ? <Scope graph={graph} id={id} room /> : <Where graph={graph} id={id} />}>
+             pic={whole ? <Scope graph={graph} id={id} room /> : <Where graph={graph} id={id} />}
+             playing={playing}>
         <Trail graph={graph} id={id} />
-        <ScopeAnswers graph={graph} id={id} deck={deck} {...(onAct ? { onAct } : {})} />
+        <ScopeAnswers graph={graph} id={id} {...(onAct ? { onAct } : {})} />
       </Shell>
     );
   }
-  return <BlockOverview graph={graph} b={b} read={read} deck={deck}
+  return <BlockOverview graph={graph} b={b} read={read} playing={playing}
                         {...(lists ? { lists } : {})} {...(onAct ? { onAct } : {})}
                         {...(presenting ? { presenting } : {})} />;
 }
@@ -72,23 +74,24 @@ export function Overview({ graph, id, onAct, lists, presenting }: OverviewProps)
 /** The tallest an overview's card stands before it is drawn small. */
 const CARD_MOST = 200;
 
-/** **The one layout**: the lead column — the card, the picture — and the answers column. */
-function Shell({ lead, pic, children, onClickCapture }: {
-  lead: ReactNode; pic: ReactNode; children: ReactNode;
+/** **The one layout**: the lead column — the card, the picture — and the answers column, the
+ *  stop playing in its place. */
+function Shell({ lead, pic, children, playing, onClickCapture }: {
+  lead: ReactNode; pic: ReactNode; children: ReactNode; playing?: ReactNode;
   onClickCapture?: (e: MouseEvent) => void;
 }) {
   return (
     <div className="ov" {...(onClickCapture ? { onClickCapture } : {})}>
       {lead ? <div className="ov-card">{lead}</div> : null}
       <div className="ov-pic">{pic}</div>
-      <div className="ov-answers lists">{children}</div>
+      <div className="ov-answers lists">{playing ?? children}</div>
     </div>
   );
 }
 
 /** **A block's answers**, in the one order. */
-function BlockOverview({ graph, b, read, deck, lists, onAct, presenting }: {
-  graph: Graph; b: Block; read: Hovered | null; deck: ReactNode; lists?: "domain" | "structure";
+function BlockOverview({ graph, b, read, playing, lists, onAct, presenting }: {
+  graph: Graph; b: Block; read: Hovered | null; playing: ReactNode; lists?: "domain" | "structure";
   onAct?: Act; presenting?: PresentationProps;
 }) {
   const id = b.id;
@@ -117,7 +120,7 @@ function BlockOverview({ graph, b, read, deck, lists, onAct, presenting }: {
   };
   return (
     <Shell lead={<Card graph={graph} id={id} most={CARD_MOST} />}
-           pic={<Where graph={graph} id={id} />} onClickCapture={played}>
+           pic={<Where graph={graph} id={id} />} playing={playing} onClickCapture={played}>
       <Trail graph={graph} id={id} />
       <Why graph={graph} b={b} kind={kind} editor={!!onAct}>
         {becomes.length ? (
@@ -132,7 +135,6 @@ function BlockOverview({ graph, b, read, deck, lists, onAct, presenting }: {
           </div>
         ) : null}
       </Why>
-      {deck}
       {read?.holds ? (
         <Section name="what it holds" about="Its parts, in order">
           <div className="chips">
@@ -168,7 +170,7 @@ function BlockOverview({ graph, b, read, deck, lists, onAct, presenting }: {
 
 /** **A line's answers**: its description — its type and tags — and how it is used — its ends,
  *  from one to the other, with what each end says. */
-function LineAnswers({ graph, e, deck }: { graph: Graph; e: Relation; deck: ReactNode }) {
+function LineAnswers({ graph, e }: { graph: Graph; e: Relation }) {
   const ends = ends_of(graph, e.id);
   const swatch = <span className="swatch" {...wire_tint(wire_of(graph, e.id))} />;
   const end = (way: "from" | "to"): Item => {
@@ -188,7 +190,6 @@ function LineAnswers({ graph, e, deck }: { graph: Graph; e: Relation; deck: Reac
           ))}
         </div>
       </Section>
-      {deck}
       <Section name="how it is used" about="What it joins, from one end to the other">
         <div className="sec-body"><List label="ends" items={[end("from"), end("to")]} /></div>
       </Section>

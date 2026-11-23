@@ -59,9 +59,8 @@ A ladder of fill and border, strongest first.
 - **one set of links a map** (2026-11-18): every relation under the map lifted to the chips it draws, one leg per pair, weighted by how many it carries (a few stroke steps); none inside one chip; never between a box and what it holds
 - **said in words at rest, drawn only when lit** (2026-11-18; faint lines always drawn tried 2026-11-17, too noisy, crossed chips): a chip's foot names its links — `→` what it reaches, `←` what reaches it, `↔` both — in up to two rows under its well, where it has room; a chip without room says them only when lit
 - **hover or pick lights the same legs**, never others: those crossing the block's edge, routed direct — straight across a gap, else one bend — over what they pass (routing round chips tried 2026-11-18: bends too tight in the narrow gaps)
-- **each lit leg named in a pill**: its first relation's name, then `+k` for the others it gathers (`placed +4`), else `n relations`; on the ground, ringed in the accent, set off its line at its middle, else further along — never touching a line, a leg's ends or another pill; with no clear place, said on hover alone; every name on hover (2026-11-18)
-- **a leg too short to read is a badge** (under 24px on screen, as between neighbours): the pill on their shared edge in its place, its way as an arrow (`↕ placed +4`), ringed as heavy as its leg, **lying along the gap** — flat between stacked neighbours, upright and read bottom to top between side-by-side ones, so it covers only its height of either chip; gaps stay fixed (2026-11-18)
-- **an arrow reaches into its target**, a few pixels past its border at every zoom, so the border never hides it; **every pill and badge draws over every line**, so a line passes under a badge, never across it (2026-11-18)
+- **a lit leg is never named on the map** (the user, 2026-11-22; the pills and badges of 2026-11-18 retired): what it carries is said on hover — its relations' names, `n relations` — and a presentation's step in the tray; a leg between neighbours is drawn as any other
+- **an arrow reaches into its target**, a few pixels past its border at every zoom, so the border never hides it (2026-11-18)
 - **a line to a holder's port counts once**: through to the part behind it, never also from the holder (2026-11-17)
 
 

@@ -6,8 +6,9 @@
  *  Given no `onAct` it is read only: the same tabs, and nothing in them takes input. A host adds
  *  tabs of its own for blocks through `extras`. */
 
-import { useEffect, useState, type ReactNode } from "react";
-import { about_of, alias_name, constraint_at, def_at, domain_of, entry_at, frozen, interface_at,
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { about_of, alias_name, constraint_at, def_at, domain_of, entry_at, featured, frozen,
+         interface_at,
          is_definition, is_interface, may_seat, of_ref, owner_of, registry_at, resolved,
          shown_name, stored_of, tag_at, type_at, type Act, type Graph, type Id,
          type Registry as Of } from "@mnd/core";
@@ -25,7 +26,7 @@ import { Overview } from "./Overview";
 import { Packages, type Offered } from "./Packages";
 import { Registries } from "./Registry";
 import { Usages } from "./Usages";
-import { type PresentationProps } from "./Presentation";
+import { Bar, type PresentationProps } from "./Presentation";
 import { DisplaySettings, type Display } from "./Workspace";
 
 /** What the tray holds that the canvas did not give it. */
@@ -68,7 +69,8 @@ export type TrayProps = {
   onDisplay?: Act;
   /** The host's own tabs for a block, after the tray's: a name, and what it draws. */
   extras?: readonly Extra[];
-  /** A model's presentations, or the one playing, leading the overview. */
+  /** The presentation playing, or how one is started: the bar at the tray's foot, and while it
+   *  plays the overview's answers. */
   presenting?: PresentationProps | null;
 };
 
@@ -235,8 +237,16 @@ export function Tray(props: TrayProps) {
     ? lit : null;
   useEffect(() => onLit?.(told), [told]);
 
+  /** **The player at the foot** (the user, 2026-11-22): while one plays, else where what the
+   *  tray is about is in a presentation; nothing otherwise. */
+  const told_in = useMemo(() => featured(graph, about), [graph, about]);
+  const presenting = props.presenting ?? null;
+  const foot = presenting && (presenting.name !== null || told_in.length)
+    ? <Bar key={about} p={presenting} featured={told_in} /> : null;
+
   return (
     <TrayFrame
+      foot={foot}
       open={open}
       onOpen={onOpen}
       big={big}

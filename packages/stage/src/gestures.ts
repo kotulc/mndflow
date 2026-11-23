@@ -48,6 +48,8 @@ export type FlowViewProps = {
   trace?: Trace | null;
   /** A presentation's steps shown so far, the last drawing now (`Traced`, `steps`). */
   steps?: Trace | null;
+  /** **The step drawing now** on a diagram: its lines raised over the rest, haloed, drawn in. */
+  now?: readonly Id[];
   /** What an id drawn stands for, where it is not a block's own — a place's box — so it lights
    *  with it. */
   stands_for?: (id: Id) => Id | null;

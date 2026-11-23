@@ -90,7 +90,12 @@ export type StageProps = {
 
 /** What a stop shows: rings, what stays clear, its steps' legs on a map and its lines elsewhere. */
 export type Showing = { ring: readonly string[]; keep: readonly string[];
-                        lines: readonly string[]; steps: Trace | null };
+                        lines: readonly string[]; steps: Trace | null;
+                        /** The lines of the step drawing now, on a diagram; among `lines`. */
+                        now?: readonly string[] };
+
+/** **Earlier steps' lines**: a soft accent, so the step now stands out where they overlap. */
+const PAST = "color-mix(in oklch, var(--accent) 45%, var(--muted))";
 
 
 /** What a card's menu lists besides the shared box actions: open only where it has a drawing of
@@ -462,8 +467,13 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
     }
   };
 
+  /** **A diagram's step**: the lines no step has shown dim; the earlier ones soft, the now its own. */
+  const stepping = !scene.areas && !!showing?.lines.length;
+  const now = new Set(showing?.now ?? []);
+  const past = (showing?.lines ?? []).filter((id) => !now.has(id));
   return (
-    <section className={path || showing?.keep.length ? "stage pathing" : "stage"} ref={host}>
+    <section className={["stage", path || showing?.keep.length ? "pathing" : "",
+                         stepping ? "stepping" : ""].filter(Boolean).join(" ")} ref={host}>
       <Crumbs trail={scene.trail} head={head ?? null} onAct={onAct} />
       {walk && !walk.outside ? <Walk walk={walk} /> : null}
       {empty ? <p className="empty">{empty}</p> : null}
@@ -474,13 +484,15 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
       {showing?.keep.length ? <style>{path_rules({ blocks: [...showing.keep],
                                                     lines: [...showing.lines] })}</style> : null}
       {showing?.ring.length ? <style>{lit_rules(showing.ring)}</style> : null}
-      {showing?.lines.length ? <style>{lit_rules(showing.lines)}</style> : null}
+      {past.length ? <style>{lit_rules(past, PAST)}</style> : null}
+      {stepping ? <style>{step_rules(showing!.lines)}</style> : null}
       {!scene.areas && touched.length
         ? <style>{lit_rules(touched, "var(--s-secondary-edge)")}</style> : null}
       <FlowView
         scene={scene}
         trace={path && "legs" in path ? path : null}
         steps={showing?.steps ?? null}
+        {...(showing?.now?.length ? { now: showing.now } : {})}
         picked={picked}
         stands_for={stands_for}
         cells={cells}
@@ -568,6 +580,12 @@ function made_at(scene: Scene, at: { x: number; y: number }) {
 }
 
 /** The hover look, as a style rule so lighting never rebuilds the arrays. */
+/** The lines a diagram's steps have shown, kept clear of the dimming. */
+function step_rules(ids: readonly string[]): string {
+  return `${ids.flatMap((id) => [`.stage.stepping [data-testid="rf__edge-${CSS.escape(id)}"]`,
+    `.stage.stepping [data-edge="${CSS.escape(id)}"]`]).join(",")} { opacity: 1; }`;
+}
+
 export function lit_rules(ids: readonly string[], colour = "var(--accent)"): string {
   const at = (kind: string, inner: string) =>
     ids.map((id) => `.react-flow [data-testid="rf__${kind}-${CSS.escape(id)}"]${inner}`).join(",");

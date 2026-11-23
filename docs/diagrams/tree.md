@@ -34,7 +34,7 @@
 | **the middle** | the model's containment as a treemap: each part as large as what it holds; a primary part, a sub model or a subtree is an open box, anything else a closed chip with its name |
 | **around** | context's zones (context.md *Layout*), the outside placed by what it is |
 | **below** | the About band past a dashed divider: plain notes, never lit or dimmed (model-plan.md 10) |
-| **lines** | at rest, each chip says its links in words at its foot; drawn only for a chip selected or hovered, or a presentation step — the same legs the words say; gathered to the chips drawn, one per pair, weighted by how many it carries, named in pills, a leg between neighbours a badge (chip.md *Lines between chips*, 2026-11-18) |
+| **lines** | at rest, each chip says its links in words at its foot; drawn only for a chip selected or hovered, or a presentation step — the same legs the words say; gathered to the chips drawn, one per pair, weighted by how many it carries, named on hover only (chip.md *Lines between chips*, 2026-11-22) |
 | **a diagram chip** | its kind's icon in a filled badge of its hue, in its head (2026-11-15) |
 | **many parts** | a chip budget from the canvas area; boxes open from the top, wide before deep, while every chip stays legible; a flat list is grouped (by kind, then by name range); a closed box says its name and counts (2026-11-16, chip.md) |
 | **opening** | a box's toggle (+ in a closed chip's foot, − before an open box's title) opens or closes it; a presentation stop's `open` sets it per stop; the model file's `open:` (unsaid: primary parts) is where it starts |

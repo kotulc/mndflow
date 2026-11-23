@@ -12,7 +12,7 @@
 
 | Tab | For | Left | Right |
 |---|---|---|---|
-| **overview** | every element | card, then where it lives (overview.md) | its path, why it matters, how it is used |
+| **overview** | every element | card, then where it lives (overview.md) | its path, its description, what it holds, how it is used; while a presentation plays, the stop (the player a bar at the tray's foot) |
 | **components** | a part, or any element carrying members | its card, then its sections | its members, a section each |
 | **contents** | what draws inside itself; a package; the workspace | its card, then its kinds (and *definitions* on a package or the workspace) | its holdings, one table; or its definitions. Its text is the overview's |
 | **usages** | a definition | its card, then its place filters | its uses by place, its subtypes. A record's uses are its records, as a table |

@@ -12,7 +12,8 @@ import { box_of, extent, lines_drawn, nearest_seat, routes_of, taken_on, ACROSS,
 import { NamingContext } from "@mnd/theme";
 import { CellsContext, DRAGGED, NODE_TYPES } from "./nodes";
 import { PickedContext, picked_by } from "./picked";
-import { CardsContext, EDGE_TYPES, Heads, HopsContext, NamesContext, RunsContext } from "./Wire";
+import { CardsContext, EDGE_TYPES, Heads, HopsContext, NamesContext, NowContext,
+         RunsContext } from "./Wire";
 import type { Adjust, FlowViewProps, Gesture, Landing } from "./gestures";
 import { BAND, MIN_ZOOM } from "./arrays";
 import { useDrag } from "./drag";
@@ -27,11 +28,17 @@ import { useSync } from "./sync";
 export type { Adjust, FlowViewProps, Gesture, Landing };
 export { DRAGGED };
 
+/** No step drawing now. */
+const NONE: readonly string[] = [];
+
+/** Where the step now is drawn: over every card and line. */
+const NOW_Z = 1000;
+
 function Canvas(props: FlowViewProps) {
   const { scene, picked = [], onGesture, onRelate, onSweep, onAdjust, onPick, onDrop,
           said, chrome = true, lattice = false, frame: framed = true,
           scroll: paging = false, focus = null, reach: wide = null, widest = null,
-          most = null, onLand, trace = null, steps = null } = props;
+          most = null, onLand, trace = null, steps = null, now = NONE } = props;
   const flow = useReactFlow();
   /** What a double-click's first click was on. The camera may fly off under the pointer between
    *  the two, so the second is about the first's target, not whatever has moved beneath it. */
@@ -204,6 +211,13 @@ function Canvas(props: FlowViewProps) {
   /** Where each line hops the lines it crosses, from the same geometry. */
   const hops = useMemo(() => new Map(drawn.map((l) => [l.id, l.hops] as const)), [drawn]);
 
+  /** **The step now is raised** over every other line and card, so it reads where lines
+   *  overlap. */
+  const now_set = useMemo(() => new Set(now), [now]);
+  const raised = useMemo(() => (now_set.size
+    ? edges.map((e) => (now_set.has(e.id) ? { ...e, zIndex: NOW_Z } : e)) : edges),
+  [edges, now_set]);
+
   /** What lights as picked: the host's pick, read by every node and line. */
   const lit = useMemo(() => picked_by(picked, props.stands_for), [picked, props.stands_for]);
 
@@ -213,12 +227,13 @@ function Canvas(props: FlowViewProps) {
     <CardsContext.Provider value={cards}>
     <NamesContext.Provider value={names}>
     <HopsContext.Provider value={hops}>
+    <NowContext.Provider value={now_set}>
     <ReactFlow
       className={["mnd-flow", framed ? "" : "frameless", scene.areas ? "map" : "",
                   cut ? "cut" : "", cut || fresh ? "fresh" : ""].filter(Boolean).join(" ")}
       style={{ "--zoom": String(zoom) } as React.CSSProperties}
       nodes={held}
-      edges={edges}
+      edges={raised}
       nodeTypes={NODE_TYPES}
       edgeTypes={EDGE_TYPES}
       onNodesChange={changed}
@@ -367,6 +382,7 @@ function Canvas(props: FlowViewProps) {
       ) : null}
       {chrome && !scroll ? <Controls showInteractive={false} fitViewOptions={fit} /> : null}
     </ReactFlow>
+    </NowContext.Provider>
     </HopsContext.Provider>
     </NamesContext.Provider>
     </CardsContext.Provider>

@@ -1,28 +1,37 @@
 # Overview
 
-**Draft, 2026-10-30: for agreement.** The overview is every element's first tray tab, lines included, with one layout for all. It explains why the picked thing matters in its context: the full answer the hover card only glances at. Nothing in it depends on the element's kind.
+**Built 2026-11-22 (reworked with the user).** The overview is every element's first tray tab — a block, a definition, a model, a diagram, a line, a package, the workspace — with **one layout for all**. **While a presentation plays, its answers column is the stop** (presentations.md *The player*); its card and picture stay. It explains why the picked thing matters in its context: the full answer the hover card only glances at.
 
 
 ## Tray head
 
-**The tray's head is the identity row**: chevron, colour edge (a line's swatch), name, kind, the role (a filled *definition* badge in its colour, or a quiet *use*), then the facts strip. It replaces the tray's old header and the overview's caption. Under 520 px the facts strip moves to its own line.
+**The tray's head is the identity row**: chevron, colour edge (a line's swatch), name, kind, the role (a filled *definition* badge in its colour, or a quiet *use*), then the facts strip. It replaces the tray's old header and the overview's caption. **One line in every tray** (2026-11-22): under 520 px the facts give way at the right rather than wrapping, so the tabs never move as the pick changes; narrow, every tab still fits its strip.
 
 
 ## Sections
 
+**The lead column**: the card, then the picture. **The answers column, always in this order**; a section with nothing to say is left out.
+
 | Section | Answers | Shows |
 |---|---|---|
-| **card** | *what does it say?* | its large face, as a diagram draws it, never shorter than a head and two rows, so a blank face lines up with a full one. A line's is the line drawn whole, its ends as a table |
-| **picture** | *where does it live?* | under the card, filling the column: the map itself, scaled whole, it lit. *open* and *read* where it opens |
-| **path** | *where is it?* | heads the answers column: its path, its own name last (`base › blocks › block`) |
-| **why it matters** | *what is it for?* | its own description, then its definition, kind, behaviour and tags |
-| **how it is used** | *what does it do here?* | its lines in and out, by port, each with its swatch; what refers to it. A definition's uses in words |
-| **where it sits** | *in what order?* | its order in its room, with earlier and later |
-| **text** | *what does it say?* | a diagram's or document's own text, last in the answers column |
+| **card** | *what does it say?* | its face as the canvas draws it; a large face taller than 200 px is drawn small (a definition's long attribute table). A line's is the line drawn whole. The workspace has none: its picture is its card |
+| **picture** | *where does it live?* | under the card: the map itself, it lit. One column: 132 px high for every element; past one column, the room the card leaves |
+| **path** | *where is it?* | heads the answers column: its path, its own name last (`base › blocks › block`); a line's, its ends |
+| **description** | *what is it for?* | **first after the path, for every element** (the user, 2026-11-22): its own description, else its definition's read through, quieter; then its definition, kind, behaviour and tags as chips; what an empty block may become. A line's: its type and tags. The workspace's: its name, its description (what the system is, what it does, for whom) and tags, editable |
+| **what it holds** | *what is it made of?* | its parts, in order, as chips |
+| **how it is used** | *what does it do here?* | its lines in and out, by port, each with its swatch; the sides it is seen on; the way across (*read its uses*, *view the model*). A definition's uses, place by place, as a list. A line's two ends |
+| **where it sits** | *in what order?* | its order in its room, with earlier and later (editor only) |
+| **text** | *what does it say?* | the own text of what opens onto a view, or of a document, last |
+
+**Every section folds** by its name (2026-11-22), remembered by name for the session, so a reader shuts what they never read once. Its chevron hangs in the margin, so its name stands where its words do; its rule is under its body, so it folds away with it, and the last draws none.
+
+**The overview's rhythm** (the user, 2026-11-22: room before density): sections 22 px apart; 12 px from a name to its body; names 13 px semibold; reading text 13 px with open leading; list rows 28 px, one soft rule a row and none under the last; a section's *i* only under the pointer; past one column the answers keep a 720 px measure. Scoped to the overview: the editing tabs keep their own density.
+
+**No buttons to open** (2026-11-22): opening is a double-click on the canvas or the explorer.
 
 **The picture is where it lives**, and **the map itself** (2026-11-02, superseding the compact tree of 2026-11-01): the same structure as the map, so the two read as one.
 
-- **the map at the card's width, in the room under the card** (2026-11-02), never laid again: never taller than that room, so the tray is never scrolled to it — where the map is taller, the window is centred on what is lit; boxes faintly outlined, chips on a faint ground, a name only where it fits whole and no other box covers it; its *open* and *read* in its top corner
+- **the map at the card's width, in the room under the card** (2026-11-02), never laid again: never taller than that room, so the tray is never scrolled to it — where the map is taller, the window is centred on what is lit; boxes faintly outlined, chips on a faint ground, a name only where it fits whole and no other box covers it
 - **subtle and compact**: a glance, quieter than the map — **one look on every mini map** (2026-11-04): the element a subtle accent outline, a box lit as a frame only; never a path, its legs or its numbers, which belong to the canvas
 - **the element is lit**, never named: its card just above says what it is; a block the map does not draw lights the nearest one above it that it does; a line lights both its ends
 - **a scope's card is its own region of the map**: the workspace's the whole map (models while any exist, else the library), in the room under it in place of a picture; a package's its own region, its picture the whole map with it lit

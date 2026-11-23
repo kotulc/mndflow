@@ -632,7 +632,7 @@
 
 /* **Hops traced across a map** (stage `Traced.tsx`): thin legs in the accent, held at a steady
    width on screen, **over the chips** on a halo of the ground a little wider, so a leg cuts
-   cleanly across what it passes, each named at its middle (`said`). Everything a leg gathers
+   cleanly across what it passes, never named on the map (2026-11-22). Everything a leg gathers
    shows on hover of its wider, unseen stroke. */
 .mnd-trace { pointer-events: none; z-index: 2000; }
 .mnd-trace .halo { stroke: var(--bg); stroke-width: calc(4px / var(--zoom, 1)); opacity: 0.85; }
@@ -668,22 +668,8 @@
 
 /* ── A model's overview (views `overview.ts`, docs/diagrams/tree.md) ── */
 
-/* **A leg's pill** (2026-11-18): its name on the ground, ringed in the accent, clear of every
-   line; a short leg's badge on its neighbours' shared edge, ringed as heavy as its leg. */
-.mnd-trace .pill { pointer-events: none; }
-.mnd-trace .pill rect {
-  fill: var(--bg);
-  stroke: color-mix(in oklch, var(--accent) 60%, transparent);
-  stroke-width: calc(1px / var(--zoom, 1));
-}
-.mnd-trace .pill .label { fill: var(--text); font-size: calc(11px / var(--zoom, 1)); }
-.mnd-trace .badge rect { stroke: var(--accent); stroke-width: calc(1.5px / var(--zoom, 1)); }
-.mnd-trace-leg[data-weight="1"] .badge rect { stroke-width: calc(2.25px / var(--zoom, 1)); }
-.mnd-trace-leg[data-weight="2"] .badge rect { stroke-width: calc(3px / var(--zoom, 1)); }
-.mnd-trace-leg[data-weight="3"] .badge rect { stroke-width: calc(4px / var(--zoom, 1)); }
-
 /* **A presentation's steps**: earlier ones faded to 40%, the last drawn from its start, its datum
-   travelling along it, its arrowhead and label after (docs/presentations.md *How a stop plays*). */
+   travelling along it (docs/presentations.md *How a stop plays*). */
 .mnd-trace.steps .past { opacity: 0.4; }
 .mnd-trace.steps .now .run {
   stroke-dasharray: 1;
@@ -693,13 +679,29 @@
 }
 .mnd-trace.steps .run { stroke-width: calc(2px / var(--zoom, 1)); }
 .mnd-trace.steps .datum { fill: var(--accent); stroke: var(--bg); stroke-width: 1.5; }
-.mnd-trace.steps .now .pill { opacity: 0; animation: mnd-appear 0.3s ease-out 1s forwards; }
 @keyframes mnd-draw { to { stroke-dashoffset: 0; } }
-@keyframes mnd-appear { to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
-  .mnd-trace.steps .now .run, .mnd-trace.steps .now .pill { animation-duration: 0.01s;
-                                                             animation-delay: 0s; }
+  .mnd-trace.steps .now .run { animation-duration: 0.01s; }
   .mnd-trace.steps .datum { display: none; }
+}
+
+/* **A step on a diagram** (the user, 2026-11-22: unclear where many lines overlap): lines no
+   step has shown dim; earlier steps' lines are a soft accent (Stage `PAST`); the step now is
+   raised over everything (Flow `NOW_Z`), on a halo of the ground, its faint stroke drawn over in
+   the accent, a datum travelling it. */
+.stage.stepping .react-flow__edge, .stage.stepping .mnd-wire-name,
+.stage.stepping .mnd-wire-end { opacity: 0.2; transition: opacity 120ms; }
+.mnd-wire-halo { fill: none; stroke: var(--bg); stroke-width: 8; stroke-linecap: round;
+                 stroke-linejoin: round; }
+.mnd-flow .mnd-wire.now .react-flow__edge-path {
+  stroke: color-mix(in oklch, var(--accent) 30%, transparent) !important; stroke-width: 2.5; }
+.mnd-wire-now { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round;
+                stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1;
+                animation: mnd-draw 1s ease-out forwards; pointer-events: none; }
+.mnd-wire-datum { fill: var(--accent); stroke: var(--bg); stroke-width: 1.5; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) {
+  .mnd-wire-now { animation-duration: 0.01s; }
+  .mnd-wire-datum { display: none; }
 }
 
 /* **Opening and closing a box**: a small square before a box's title, in a closed chip's foot. */

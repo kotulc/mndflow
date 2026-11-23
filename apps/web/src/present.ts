@@ -179,8 +179,10 @@ export function showing_of(graph: Graph, layer: Id | null, scene: Scene,
   /** **The current block** (the user, 2026-11-21): the card the step just lit lands on is ringed
    *  with it, so where the presentation is reads at a glance. */
   const landed = last?.relation ? lift(graph.edges[last.relation]?.to ?? "") : undefined;
+  /** **The step now**: the last shown's line, drawn over the rest on a diagram. */
+  const now = last?.relation ? [last.relation, `${ACROSS}${last.relation}`] : [];
   return { ring: [...new Set([...(at && !whole ? [at] : []), ...marks,
-                              ...(landed ? [landed] : [])])], keep, lines: drawn_lines,
+                              ...(landed ? [landed] : [])])], keep, lines: drawn_lines, now,
            steps: legs.length ? { blocks: [], lines: [], legs,
                                   ...(last?.relation ? {} : { still: true }) } : null };
 }
