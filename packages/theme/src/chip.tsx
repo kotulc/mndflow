@@ -40,8 +40,6 @@ export type ChipData = {
   well?: number; tiles?: readonly ChipTile[];
   /** A box of a model's overview, closed here: a click on its toggle opens it. */
   toggle?: "open" | "closed";
-  /** Its links in words, at its foot, and the rows they take. */
-  links?: string; links_rows?: number;
 };
 
 export type ChipFaceProps = { data: ChipData; w: number; h: number;
@@ -55,12 +53,11 @@ export function ChipFace({ data, w, h, picked = false, lit = [] }: ChipFaceProps
   const cell = data.cell ?? "leaf";
   const tint = data.tint ?? null;
   return (
-    <div className={["mnd-chip", cell, picked ? "picked" : "", data.links ? "linked" : ""]
+    <div className={["mnd-chip", cell, picked ? "picked" : ""]
            .filter(Boolean).join(" ")}
          {...(tint ? { "data-family": tint["data-family"] } : {})}
          style={{ ...(tint?.style ?? {}), "--name-size": `${data.size ?? 13}px`,
-                  "--w": `${w}px`, "--h": `${h}px`,
-                  ...(data.links ? { "--links-rows": data.links_rows ?? 1 } : {}) } as CSSProperties}>
+                  "--w": `${w}px`, "--h": `${h}px` } as CSSProperties}>
       <Header name={<span className="mnd-chip-name">{data.label}</span>}
               {...(data.kind && cell !== "actor" && cell !== "external" ? { kind: data.kind } : {})}
               hued={cell === "diagram"} {...(data.facts ? { facts: data.facts } : {})}
@@ -70,8 +67,6 @@ export function ChipFace({ data, w, h, picked = false, lit = [] }: ChipFaceProps
       {data.well !== undefined && data.tiles?.length ? (
         <Well top={data.well} cell={cell} tiles={data.tiles} lit={lit} />
       ) : null}
-      {data.links ? <span className="mnd-chip-links" title={data.links}>{data.links}</span>
-        : null}
     </div>
   );
 }

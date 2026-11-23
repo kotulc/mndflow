@@ -22,7 +22,6 @@ import { Grips } from "./Grips";
 import { kind_of, spread, LINES } from "./pointer";
 import { paged, useCamera, useFit, useRoom, type Shot } from "./room";
 import { Sweeping } from "./Sweeping";
-import { Traced } from "./Traced";
 import { useSync } from "./sync";
 
 export type { Adjust, FlowViewProps, Gesture, Landing };
@@ -38,7 +37,7 @@ function Canvas(props: FlowViewProps) {
   const { scene, picked = [], onGesture, onRelate, onSweep, onAdjust, onPick, onDrop,
           said, chrome = true, lattice = false, frame: framed = true,
           scroll: paging = false, focus = null, reach: wide = null, widest = null,
-          most = null, onLand, trace = null, steps = null, now = NONE } = props;
+          most = null, onLand, now = NONE } = props;
   const flow = useReactFlow();
   /** What a double-click's first click was on. The camera may fly off under the pointer between
    *  the two, so the second is about the first's target, not whatever has moved beneath it. */
@@ -364,10 +363,6 @@ function Canvas(props: FlowViewProps) {
           </svg>
         </ViewportPortal>
       ) : null}
-      {/* A presentation's steps; a path traced. */}
-      {steps ? <ViewportPortal><Traced trace={steps} as="steps" /></ViewportPortal> : null}
-      {trace ? <ViewportPortal><Traced trace={trace} /></ViewportPortal>
-        : null}
       {/* The ends of what is picked, and the berths near it. */}
       <Grips scene={scene} picked={picked} frame={frame} at={at}
              onAdjust={onAdjust} onGesture={onGesture} />

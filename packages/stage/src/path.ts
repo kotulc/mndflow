@@ -1,34 +1,31 @@
-/** **A block's hops, lit** (2026-11-04): the card or chip under the pointer, else the one
- *  picked, lights what reaches it and what it reaches, a hop each way — on a layer its cards and
- *  lines (core `reached`), on a map its legs chip to chip (views `trace_of`); while a path is
- *  walked, the step walked instead (`walking`). The rest dims (`flow.css` *Hops lit*). Hover
- *  shows it while the pointer is on; a pick holds it. */
+/** **A block's hops, lit** (2026-11-04): on a layer, the card under the pointer, else the one
+ *  picked, lights what reaches it and what it reaches, a hop each way (core `reached`). **A map
+ *  lights only what is picked** (the user, 2026-11-22: a treemap is containment alone), each box
+ *  with what it holds (views `picked_trace`). The rest dims (`flow.css` *Hops lit*). Hover shows
+ *  it while the pointer is on; a pick holds it. */
 
 import { useEffect, useMemo, useState, type RefObject } from "react";
-import { reached, type Graph, type Hop, type Id } from "@mnd/core";
-import { hop_trace, picked_trace, trace_of, type Scene, type Trace } from "@mnd/views";
+import { reached, type Graph, type Id } from "@mnd/core";
+import { picked_trace, type Scene } from "@mnd/views";
 
-/** What lights: cards and lines, on a map a trace, or null where nothing joins. */
-export type Lit = { blocks: readonly Id[]; lines: readonly Id[] } | Trace | null;
+/** What lights: cards and lines, or null where nothing joins. */
+export type Lit = { blocks: readonly Id[]; lines: readonly Id[] } | null;
 
 
-/** The hops lit: the card or chip hovered; else the step walked; else the one picked; else, on a
- *  map, whatever is picked, hops or none, so a pick always reads the same way. */
+/** The hops lit: on a layer the card hovered, else the one picked; on a map what is picked. */
 export function usePath(host: RefObject<HTMLElement>, graph: Graph, scene: Scene,
-                        picked: readonly Id[], walking: Hop | null = null): Lit {
+                        picked: readonly Id[]): Lit {
   const hovered = useOver(host);
   const one = picked.length === 1 ? picked[0]! : null;
   return useMemo(() => {
+    if (scene.areas) return picked_trace(scene, picked);
     const lit = (on: Id | null): Lit => {
       if (!on || !graph.blocks[on]) return null;
-      if (scene.areas) return trace_of(graph, scene, on);
       const t = reached(graph, on, scene.layer);
       return t.blocks.length > 1 || t.lines.length ? t : null;
     };
-    const step = (h: Hop): Lit => (scene.areas ? hop_trace(graph, scene, [h])
-      : { blocks: [h.from, h.to], lines: [] });
-    return lit(hovered) ?? (walking ? step(walking) : lit(one)) ?? picked_trace(scene, picked);
-  }, [graph, scene, hovered, walking, one, picked]);
+    return lit(hovered) ?? lit(one);
+  }, [graph, scene, hovered, one, picked]);
 }
 
 /** The rule lighting the hops' cards and lines whole, over the dimming. */

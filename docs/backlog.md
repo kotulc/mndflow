@@ -77,7 +77,7 @@ Known rough spots, taken when a step passes near one.
 | **camera** | a short port drag lands short |
 | **React** | `flushSync was called from inside a lifecycle method`, once seen opening the profile from a layer; recheck |
 | **packages** | a definition file holds no parts, so a pattern's parts live in its package's `package.json`; base's `decision` and `services`'s share a name, so `type: decision` resolves to whichever the lookup finds first |
-| **presentations** (2026-11-21) | the path walk (stage `Walk.tsx`, web `App.tsx` `walk`) still stands beside the player: retire it or fold it in; a step's ring and dim lift ends by `path`, so an end drawn across a frame (`@across:`) is kept by its zone mark, not by name; the tray's model list still has its own ▶ rows beside the headers' |
+| **presentations** (2026-11-21) | ~~the path walk~~ retired 2026-11-22; a step's ring and dim lift ends by `path`, so an end drawn across a frame (`@across:`) is kept by its zone mark, not by name; the tray's model list still has its own ▶ rows beside the headers' |
 | **paths** | a path names every region on the way (`Overview.Shop.Back office.Payments`), though layers look through them |
 | **diagram files** | a card drawn in by `source` keeps only its type, body, tags, settings, name and values; the web app's collect loads no package a package imports |
 | **annotations** | a label floats aside, so on a layer cut into regions it can land across a band's heading; a picked region draws a full outline rather than its band; an empty layer's words centre on the canvas rather than the room |

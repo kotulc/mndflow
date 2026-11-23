@@ -23,8 +23,7 @@ import { look_of, swatch_of, tint_attrs } from "./look";
 import { box_of, cell, type Area, type BoxNode, type ChipCell, type InnerTile,
          type Scene } from "./scene";
 import { layer_tree, members, model_tree, parts_of, type Branch } from "./tree";
-import { around, zone_room, zones_of } from "./overview";
-import { links_of, type Leg } from "./trace";
+import { about_room, around } from "./overview";
 import { CANVAS } from "./size";
 
 /** The area every map is drawn in. */
@@ -58,18 +57,12 @@ const NAME = { least: 11, most: 20, per: 13 };
  *  its cells. */
 const CHIP = { top: 8, gap: 8, side: 26, foot: 9, well: 26, inset: 8 };
 
-/** **A chip's links rows** (stage `flow.css` `.mnd-chip-links`): a row's height, a glyph's
- *  width, and the room its sides keep, clear of the toggle. */
-const LINKS = { row: 14, glyph: 6.3, side: 36 };
 
 /** **Every child in a well is named**, its role's icon right of its name (theme `flow.css`
  *  `.mnd-well-icon`, `icon` of its size across with its gap), shrunk to fit its cell (a monospace
  *  character is `char` of its size across, the line with its padding `line` of it down), between
  *  the least and the most; where even the least is too long, cut short. */
 const NAMED = { least: 8, most: 10.5, char: 0.6, pad: 0.45, icon: 1.4, line: 1.8, right: 4 };
-
-/** The least share of the canvas a model's middle keeps, each way, beside its zones and About. */
-const KEEP = 0.7;
 
 /** How many grades a well's cells step through (stage `flow.css` *The well*). */
 const GRADES = 4;
@@ -127,8 +120,8 @@ export function section_map(graph: Graph, lists?: "domain" | "structure",
  *  holding a model, its folders, and each model open one level. */
 export function model_map(graph: Graph, tree: readonly Branch[] = model_tree(graph),
                           group?: Id | null): Scene {
-  return narrowed(linked(graph, mapped(graph, { id: MAP_ROOT, kids: tree.map(leaf_of(graph)) },
-                                       "models", [], CANVAS, group), null), group);
+  return narrowed(mapped(graph, { id: MAP_ROOT, kids: tree.map(leaf_of(graph)) }, "models", [],
+                         CANVAS, group), group);
 }
 
 /** **A treemap diagram is its map**: what it holds, laid as the models' map lays it — read only,
@@ -144,10 +137,9 @@ export function layer_map(graph: Graph, layer: Id, open?: readonly Id[],
     const filing = is_filing(graph, layer);
     const top = filing ? [framed(layer, kids)] : kids;
     const scene = mapped(graph, { id: MAP_ROOT, kids: top }, "models", [layer], CANVAS, group);
-    return narrowed({ ...linked(graph, scene, layer), layer, trail: trail_of(graph, layer),
+    return narrowed({ ...scene, layer, trail: trail_of(graph, layer),
                       ...(filing ? { entered: layer } : {}) }, group);
   }
-  const zones = zones_of(graph, layer_tree(graph, layer).map((b) => b.id));
   const shown = new Set(open ?? opened(graph, layer, model));
   /** A box or a chip that can hold something opens and closes; a group's panel never does, and
    *  a reference stands for what is drawn elsewhere. */
@@ -160,16 +152,12 @@ export function layer_map(graph: Graph, layer: Id, open?: readonly Id[],
              ...(leaf.closed ? { closed: { ...leaf.closed, toggle: "closed" as const } } : {}),
              ...(b.as !== "chip" ? { kids: b.kids.map(toggled) } : {}) };
   };
-  const kids = layer_tree(graph, layer, shown).filter((b) => !zones.has(b.id)).map(toggled);
-  /** The middle keeps at least `KEEP` of the canvas each way, however much stands round it. */
-  const less = zone_room(zones);
-  const room = { w: Math.max(CANVAS.w * KEEP, CANVAS.w - less.w),
-                 h: Math.max(CANVAS.h * KEEP, CANVAS.h - less.h) };
-  /** **A model entered is framed** (2026-11-21): its own parts in its box, what is across it
-   *  (actors, externals) outside, so a line between them crosses the wall. */
+  /** **A model entered is framed** (2026-11-21), its actors and externals tiles of it like any
+   *  part (the user, 2026-11-22: a treemap is containment alone); About below. */
+  const kids = layer_tree(graph, layer, shown).map(toggled);
   const middle = mapped(graph, { id: MAP_ROOT, kids: [framed(layer, kids)] }, "models", [keep],
-                        room, group);
-  return narrowed({ ...linked(graph, around(graph, model, layer, middle, zones), model), layer,
+                        { w: CANVAS.w, h: CANVAS.h - about_room() }, group);
+  return narrowed({ ...around(graph, model, layer, middle), layer,
                     trail: trail_of(graph, layer) }, group);
 }
 
@@ -218,50 +206,9 @@ export function library_map(graph: Graph, root?: Id, group?: Id | null,
   };
   const tops = (root ? [root] : shown_packages(graph, toggled).map((p) => p.id)).map(entry)
     .filter((k): k is Leaf => !!k);
-  const map = linked(graph, mapped(graph, { id: MAP_ROOT, kids: tops }, "library", [root],
-                                   CANVAS, group), root ?? null);
+  const map = mapped(graph, { id: MAP_ROOT, kids: tops }, "library", [root], CANVAS, group);
   return narrowed(root ? { ...map, layer: root, entered: root, trail: trail_of(graph, root) }
     : map, group);
-}
-
-/** **A map's links** (2026-11-18): every join under `scope` gathered to what the map draws, kept
- *  for what lights, and **each chip's said at its foot** in words — what it reaches, what reaches
- *  it, what goes both ways — where a row is left under its well. */
-function linked(graph: Graph, scene: Scene, scope: Id | null): Scene {
-  const links = links_of(graph, scene, scope);
-  if (!links.length) return scene;
-  const names = new Map((scene.areas ?? []).map((a) => [a.id, a.label]));
-  const nodes = scene.nodes.map((n) => {
-    const words = n.type === "chip" ? said_of(n.id, links, names) : "";
-    const rows = words ? rows_for(n, words) : 0;
-    return rows ? { ...n, data: { ...n.data, links: words, links_rows: rows } } : n;
-  });
-  return { ...scene, nodes, links };
-}
-
-/** **A chip's links in words**: `→` what it reaches, `←` what reaches it, `↔` both ways, each a
- *  list of names. */
-function said_of(id: Id, links: readonly Leg[], names: ReadonlyMap<Id, string>): string {
-  const ways = { "→": [] as string[], "←": [] as string[], "↔": [] as string[] };
-  for (const l of links) {
-    if (l.from !== id && l.to !== id) continue;
-    const far = names.get(l.from === id ? l.to : l.from) ?? "";
-    ways[l.both ? "↔" : l.from === id ? "→" : "←"].push(far);
-  }
-  return Object.entries(ways).filter(([, n]) => n.length)
-    .map(([way, n]) => `${way} ${n.join(", ")}`).join(" · ");
-}
-
-/** **How many rows a chip gives its links**: as many as the words take, up to two, that are left
- *  under its well with the well keeping its least, else under its header; none where not one
- *  is. */
-function rows_for(n: BoxNode, words: string): number {
-  const { w, h } = box_of(n);
-  const free = n.data.well !== undefined && n.data.tiles?.length
-    ? h - n.data.well - CHIP.foot - CHIP.well
-    : h - CHIP.top - head_h(n.data.size ?? NAME.least) - CHIP.gap - CHIP.foot;
-  const need = Math.ceil(words.length * LINKS.glyph / Math.max(1, w - LINKS.side));
-  return Math.max(0, Math.min(2, need, Math.floor(free / LINKS.row)));
 }
 
 /** **A view narrowed to a group**, where it drew it: entered at the group, its crumbs after the

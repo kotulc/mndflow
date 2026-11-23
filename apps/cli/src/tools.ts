@@ -191,14 +191,28 @@ function count(kind: string, map: Record<string, unknown>): { n: number; of: str
   return { n: list("blocks"), of: "steps" };
 }
 
-/** A model file's presentations, as its file says them. */
-type Said = { name?: string; description?: string; stops?: { title?: string }[] };
+/** A model file's presentations and their stops, as its file says them. */
+type Said = Record<string, unknown> & { name?: string; title?: string; at?: string; show?: string;
+                                       into?: string; summary?: string; text?: string;
+                                       relation?: string; mark?: string; steps?: unknown[];
+                                       stops?: Said[] };
 
-/** **`presentation list`**: each presentation of a model file, its stops by title. */
-export function presentations(model: string): { name: string; stops: string[] }[] {
+/** **`presentation list`**: each presentation of a model file, its stops as said. */
+export function presentations(model: string): { name: string; stops: Said[] }[] {
   const doc = parseDocument(readFileSync(model, "utf8")).toJS() as { presentations?: Said[] };
-  return (doc.presentations ?? []).map((p) => ({
-    name: p.name ?? "", stops: (p.stops ?? []).map((s) => s.title ?? "") }));
+  return (doc.presentations ?? []).map((p) => ({ name: p.name ?? "", stops: p.stops ?? [] }));
+}
+
+/** **A model's tours as played** (round 6: titles alone left the YAML to be read): each stop's
+ *  place, what it is at, shows and leads into, its summary, and each step's sentence. */
+export function played(model: string): string {
+  return presentations(model).flatMap((p) => [`${p.name}`, ...p.stops.flatMap((s, i) => [
+    `  ${i + 1}. ${s.title ?? ""}  (at ${s.at ?? "-"}${s.show ? `, shows ${s.show}` : ""}`
+      + `${s.into ? `, into ${s.into}` : ""})`,
+    ...(s.summary ? [`     ${s.summary}`] : []),
+    ...((s.steps ?? []) as Said[]).map((t, k) => `     ${k + 1}) ${t.text ?? ""}`
+      + `  [${t.relation ? `line ${t.relation}` : t.mark ? `mark ${t.mark}` : "-"}]`)]), ""])
+    .join("\n");
 }
 
 /** **`presentation draft`**: a presentation seeded from a flow or sequence diagram file, one stop
@@ -223,7 +237,7 @@ export function draft(model: string, diagram: string, as?: string): string {
 }
 
 /** One drafted step: a line lit, with its sentence. */
-type Step = { relation: string; text: string };
+type Step = { relation: string; text: string } | { mark: string; text: string };
 
 /** A file read for a tour: its path, map and long form. */
 type Read = { file: string; said: Record<string, unknown>; form: ReturnType<typeof long_form> };
@@ -259,12 +273,18 @@ function focus(r: Read): string {
     ?? parts[0] ?? name_of(r);
 }
 
-/** A model's own tour: its overview, every line in order, then each diagram in its folder shown
- *  and stepped through its lines in order. */
+/** A part's drafted sentence: its name and what it is for, to be rewritten. */
+const part_said = (b: { name: string; description?: string }) =>
+  `${b.name}${b.description ? `: ${b.description}` : "."}`;
+
+/** A model's own tour: **its treemap, each part marked** (2026-11-22: a treemap draws no
+ *  lines, so its stop says what the model is made of), then each diagram in its folder shown and
+ *  stepped through its lines in order. */
 function model_tour(r: Read, at: string): Record<string, unknown>[] {
+  const parts = r.form.blocks.filter((b) => b.type !== "note") as
+    { name: string; description?: string }[];
   const own = { title: name_of(r), at, summary: String(r.said["description"] ?? name_of(r)),
-                steps: r.form.relations.map((e): Step => ({ relation: `${e.from} -> ${e.to}`,
-                                                            text: sentence(e) })) };
+                steps: parts.map((b): Step => ({ mark: b.name, text: part_said(b) })) };
   const dir = r.file.replace(/\.ya?ml$/, "");
   const shown = existsSync(dir) ? ordered(dir).map(read)
     .filter((d) => String(d.said["type"] ?? "") !== "model") : [];
@@ -289,10 +309,6 @@ function system_of(folder: string): string {
   return pkg.graph?.blocks?.[pkg.graph.root ?? ""]?.description?.trim() ?? "";
 }
 
-/** How many of a sub-model's lines from its actors the top tour steps through before leading
- *  into its own tour. */
-const LEADS = 3;
-
 /** **`presentation draft <folder>`: the whole model's tour** (the user, 2026-11-21): each model
  *  file of a package folder gets its own tour, named as the model; the first (the overview) also
  *  gets the **top tour**: its own stops, then a stop per other model — shown, its first lines
@@ -308,14 +324,12 @@ export function tour(folder: string, force = false): { file: string; text: strin
       { toJSON?: () => unknown } | undefined)?.toJSON?.();
     return (Array.isArray(list) ? list : []) as Record<string, unknown>[];
   };
+  /** A stop per other model, leading into its tour: shown as its treemap, so no line is
+   *  stepped there (2026-11-22); its own tour steps its diagrams. */
   const leads = models.slice(1).map((r) => {
     const n = name_of(r);
-    const kind = (x: string) => r.form.blocks.find((b) => b.name === x)?.type ?? "";
-    const steps = r.form.relations.filter((e) => kind(e.from) === "actor").slice(0, LEADS)
-      .map((e): Step => ({ relation: `${n}.${e.from} -> ${n}.${e.to}`, text: sentence(e) }));
     const first = String(kept_of(r)[0]?.["name"] ?? n);
-    return { title: n, at: n, show: n, summary: String(r.said["description"] ?? n),
-             into: first, ...(steps.length ? { steps } : {}) };
+    return { title: n, at: n, show: n, summary: String(r.said["description"] ?? n), into: first };
   });
   /** **The top tour opens on what the system is** (2026-11-22): the package's description. */
   const system = system_of(folder);
@@ -323,8 +337,8 @@ export function tour(folder: string, force = false): { file: string; text: strin
     const name = name_of(r);
     const kept = kept_of(r);
     const [own, ...shown] = model_tour(r, focus(r));
-    const first = i === 0 && system ? { ...own!, summary: `${system} ${String(own!["summary"])}` }
-      : own!;
+    /** Its summary says the system, never the model's description again (round 6). */
+    const first = i === 0 && system ? { ...own!, summary: system } : own!;
     const stops = [first, ...shown, ...(i === 0 ? leads : [])];
     const tour = { name, description: String(r.said["description"] ?? `${name}, stop by stop.`),
                    stops };

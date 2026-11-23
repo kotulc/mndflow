@@ -5,9 +5,9 @@
 
 import { useEffect, useState } from "react";
 import { diagram_kind, path, pace_of, play_at, play_into, play_next, play_out, play_prev, play_start,
-         presentations_of, stop_of, used_model, type Graph, type Hop, type Id,
+         presentations_of, stop_of, used_model, type Graph, type Id,
          type Play } from "@mnd/core";
-import { hop_trace, ACROSS, type Scene } from "@mnd/views";
+import { ACROSS, type Scene } from "@mnd/views";
 import type { Showing } from "@mnd/stage";
 
 /** Where the reader's own pace is kept: their setting, over the file's, while it plays. */
@@ -137,8 +137,9 @@ export function usePresent(graph: Graph, layer: Id | null) {
            dive, resume, set_pace };
 }
 
-/** **What a stop shows** on the drawing it is on: the block ringed, what stays clear, its steps'
- *  legs on a map and the lines they light elsewhere. Null off its drawing. */
+/** **What a stop shows** on the drawing it is on: the block ringed, what stays clear, and on a
+ *  diagram the lines its steps light. **On a map a relation step rings its two ends** (the user,
+ *  2026-11-22: a treemap draws no lines). Null off its drawing. */
 export function showing_of(graph: Graph, layer: Id | null, scene: Scene,
                            p: Presenting): Showing | null {
   const { play, stop, on, home } = p;
@@ -147,7 +148,7 @@ export function showing_of(graph: Graph, layer: Id | null, scene: Scene,
   const lift = (id: Id) => drawn_as(graph, drawn, id);
   if (play.dive) {
     const at = lift(play.dive);
-    return { ring: at ? [at] : [], keep: [], lines: [], steps: null };
+    return { ring: at ? [at] : [], keep: [], lines: [] };
   }
   const shown = (stop.steps ?? []).slice(0, play.shown);
   const marks = shown.flatMap((s) => (s.mark ? [lift(s.mark)] : []))
@@ -155,11 +156,10 @@ export function showing_of(graph: Graph, layer: Id | null, scene: Scene,
   const lines = shown.flatMap((s) => (s.relation ? [s.relation] : []));
   /** A line drawn crossing the frame to what is across lights as the relation it draws. */
   const drawn_lines = lines.flatMap((id) => [id, `${ACROSS}${id}`]);
-  const hops: Hop[] = lines.flatMap((id) => {
+  const hops = lines.flatMap((id) => {
     const e = graph.edges[id];
-    return e ? [{ from: e.from, to: e.to, names: e.name ? [e.name] : [] }] : [];
+    return e ? [{ from: e.from, to: e.to }] : [];
   });
-  const legs = scene.areas ? hops.flatMap((h) => hop_trace(graph, scene, [h])?.legs ?? []) : [];
   const at = lift(stop.at);
   /** **What stays clear**: the block the stop is about, what is round and inside it, and its
    *  steps' ends; nothing dims where it is about the whole system. */
@@ -177,16 +177,17 @@ export function showing_of(graph: Graph, layer: Id | null, scene: Scene,
       .map((n) => n.id)])];
   const last = shown[shown.length - 1];
   /** **The current block** (the user, 2026-11-21): the card the step just lit lands on is ringed
-   *  with it, so where the presentation is reads at a glance. */
-  const landed = last?.relation ? lift(graph.edges[last.relation]?.to ?? "") : undefined;
+   *  with it, so where the presentation is reads at a glance; on a map, where no line is drawn,
+   *  the block it leaves too. */
+  const e = last?.relation ? graph.edges[last.relation] : undefined;
+  const landed = e ? [lift(e.to), ...(scene.areas ? [lift(e.from)] : [])]
+    .filter((x): x is Id => !!x) : [];
   /** **The step now**: the last shown's line, drawn over the rest on a diagram; a datum travels
    *  it only where lines carry data, on a dataflow (the user, 2026-11-22). */
   const now = last?.relation ? [last.relation, `${ACROSS}${last.relation}`] : [];
   const flows = !!layer && diagram_kind(graph, layer) === "dataflow";
-  return { ring: [...new Set([...(at && !whole ? [at] : []), ...marks,
-                              ...(landed ? [landed] : [])])], keep, lines: drawn_lines, now, flows,
-           steps: legs.length ? { blocks: [], lines: [], legs,
-                                  ...(last?.relation ? {} : { still: true }) } : null };
+  return { ring: [...new Set([...(at && !whole ? [at] : []), ...marks, ...landed])], keep,
+           lines: scene.areas ? [] : drawn_lines, now: scene.areas ? [] : now, flows };
 }
 
 /** **A block as a drawing draws it**: itself, else drawn across the frame (`@across:`), else

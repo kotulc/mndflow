@@ -419,23 +419,6 @@
 .mnd-chip.external .mnd-chip-name { color: var(--muted); font-weight: 500; }
 .mnd-chip.external .mnd-header-icon { color: var(--muted); }
 .mnd-chip-name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-/* **A chip's links** (views `map.ts` `linked`): a row or two at its foot, quiet, under its well
-   and clear of its toggle; the well rises to make room. */
-.mnd-chip-links {
-  position: absolute;
-  left: 10px;
-  right: 26px;
-  bottom: 7px;
-  display: -webkit-box;
-  overflow: hidden;
-  color: var(--muted);
-  font-size: 10.5px;
-  line-height: 14px;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: var(--links-rows, 1);
-}
-.mnd-chip.linked .mnd-well { bottom: calc(9px + var(--links-rows, 1) * 14px); }
-
 /* **The well**: a holder's a plain recess, a diagram's framed in its hue like a small canvas, a
    *diagram* tab on its frame. Its cells are a quiet treemap, each named where it has room. */
 .mnd-well {
@@ -630,58 +613,9 @@
   transition: opacity 120ms;
 }
 
-/* **Hops traced across a map** (stage `Traced.tsx`): thin legs in the accent, held at a steady
-   width on screen, **over the chips** on a halo of the ground a little wider, so a leg cuts
-   cleanly across what it passes, never named on the map (2026-11-22). Everything a leg gathers
-   shows on hover of its wider, unseen stroke. */
-.mnd-trace { pointer-events: none; z-index: 2000; }
-.mnd-trace .halo { stroke: var(--bg); stroke-width: calc(4px / var(--zoom, 1)); opacity: 0.85; }
-.mnd-trace polyline { fill: none; stroke-linecap: round; stroke-linejoin: round; }
-.mnd-trace .run {
-  stroke: var(--accent);
-  stroke-width: calc(1.5px / var(--zoom, 1));
-  opacity: 0.9;
-}
-.mnd-trace .hit {
-  stroke: transparent;
-  stroke-width: calc(8px / var(--zoom, 1));
-  pointer-events: stroke;
-}
-/* A leg gathering more relations is heavier, a step each time they double. */
-.mnd-trace-leg[data-weight="1"] .run { stroke-width: calc(2.25px / var(--zoom, 1)); }
-.mnd-trace-leg[data-weight="2"] .run { stroke-width: calc(3px / var(--zoom, 1)); }
-.mnd-trace-leg[data-weight="3"] .run { stroke-width: calc(4px / var(--zoom, 1)); }
-.mnd-trace-leg:hover .run { opacity: 1; }
-.mnd-trace-leg[data-weight="0"]:hover .run { stroke-width: calc(2px / var(--zoom, 1)); }
-.mnd-trace marker path { fill: var(--accent); opacity: 0.85; }
-/* **Walking a path** (stage `Walk.tsx`): one quiet strip at the canvas's foot, centred, saying
-   the step in words. */
-.mnd-walk { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 5;
-            display: flex; align-items: center; gap: 4px; max-width: calc(100% - 32px);
-            padding: 2px 4px; border: 1px solid var(--divider); border-radius: 3px;
-            background: var(--surface); color: var(--text); font-size: 12px; }
-.mnd-walk span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mnd-walk button { border: 0; background: none; color: var(--text); cursor: pointer;
-                   padding: 2px 6px; font: inherit; }
-.mnd-walk button:disabled { color: var(--faint); cursor: default; }
-.mnd-walk button:not(:disabled):hover { color: var(--accent); }
-
 /* ── A model's overview (views `overview.ts`, docs/diagrams/tree.md) ── */
 
-/* **A presentation's steps**: earlier ones faded to 40%, the last drawn from its start
-   (docs/presentations.md *How a stop plays*). */
-.mnd-trace.steps .past { opacity: 0.4; }
-.mnd-trace.steps .now .run {
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  stroke-width: calc(2.5px / var(--zoom, 1));
-  animation: mnd-draw 1s ease-out forwards;
-}
-.mnd-trace.steps .run { stroke-width: calc(2px / var(--zoom, 1)); }
 @keyframes mnd-draw { to { stroke-dashoffset: 0; } }
-@media (prefers-reduced-motion: reduce) {
-  .mnd-trace.steps .now .run { animation-duration: 0.01s; }
-}
 
 /* **A step on a diagram** (the user, 2026-11-22: unclear where many lines overlap): lines no
    step has shown dim; earlier steps' lines are a soft accent (Stage `PAST`); the step now is

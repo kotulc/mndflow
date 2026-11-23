@@ -13,11 +13,9 @@ import { cell_key } from "./nodes";
 import { Icon } from "@mnd/theme";
 import { area_under, boxed_place, box_of, clear_of, holds, swept_cells, towards, BLOCK, CELL,
          type Scene } from "@mnd/views";
-import type { Trace } from "@mnd/views";
 import { Crumbs } from "./Crumbs";
 import { Hover } from "./Hover";
 import { path_rules, usePath } from "./path";
-import { Walk, type Walking } from "./Walk";
 import type { Shot } from "./room";
 
 export type { Adjust, Landing, Move };
@@ -26,8 +24,6 @@ export type StageProps = {
   scene: Scene;
   graph: Graph;
   picked: readonly string[];
-  /** A path offered or walked from the block picked: one hop lit a step. */
-  walk?: Walking | null;
   onAct: Act;
   /** The writes one canvas adjustment comes to, for the host to run as one step. */
   onAdjust?: (moves: readonly Move[]) => void;
@@ -79,7 +75,7 @@ export type StageProps = {
    *  rename, drop or line drawing edits through it. Picking and reading still work. */
   editable?: boolean;
   /** **A presentation's stop** (docs/presentations.md): the block ringed, what stays undimmed —
-   *  none dims where it is empty — and on a map its steps' legs, else the lines they light. */
+   *  none dims where it is empty — and on a diagram the lines they light. */
   showing?: Showing | null;
   /** A box of a model's overview opened or closed by its toggle, by the node it is on. */
   onToggle?: (id: string) => void;
@@ -88,9 +84,9 @@ export type StageProps = {
   onPlay?: (at: number, on?: string) => void;
 };
 
-/** What a stop shows: rings, what stays clear, its steps' legs on a map and its lines elsewhere. */
+/** What a stop shows: rings, what stays clear, and on a diagram the lines its steps light. */
 export type Showing = { ring: readonly string[]; keep: readonly string[];
-                        lines: readonly string[]; steps: Trace | null;
+                        lines: readonly string[];
                         /** The lines of the step drawing now, on a diagram; among `lines`. */
                         now?: readonly string[];
                         /** Whether its lines carry data (a dataflow): a datum travels the step now. */
@@ -219,7 +215,7 @@ function list_for(g: Gesture, scene: Scene, graph: Graph,
 export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, onPickCells, onDrop,
                        menu, said, onSaid, head, empty, lattice, frame, legend, corner, module,
                        dir, type, lit = [], touched = [], shot, onLand, entered = false,
-                       keys = true, editable = true, walk = null, onClear, showing = null,
+                       keys = true, editable = true, onClear, showing = null,
                        onToggle, onPlay }: StageProps) {
   /** What a right drag or a chain draws, as the rail set it. */
   const drawing = { ...(module ? { module } : {}), dir: dir ?? "none",
@@ -264,10 +260,8 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
   }, [onToggle, onPlay, onPick]);
   /** Letting go of the pick: the host's, else none picked. */
   const clear = () => (onClear ? onClear() : onPick([]));
-  /** What the card hovered or picked reaches a hop each way, or the step walked, lit over the
-   *  rest dimmed. */
-  const path = usePath(host, graph, scene, picked,
-                       walk && walk.at !== null ? walk.steps[walk.at] ?? null : null);
+  /** What the card hovered or picked reaches a hop each way, lit over the rest dimmed. */
+  const path = usePath(host, graph, scene, picked);
   /** A place's box among a definition's uses lights with its place. */
   const stands_for = useCallback((id: string) => boxed_place(graph, id), [graph]);
   const [at, set_at] = useState<
@@ -478,7 +472,6 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
                          stepping ? "stepping" : "", showing?.flows ? "flows" : ""]
                          .filter(Boolean).join(" ")} ref={host}>
       <Crumbs trail={scene.trail} head={head ?? null} onAct={onAct} />
-      {walk && !walk.outside ? <Walk walk={walk} /> : null}
       {empty ? <p className="empty">{empty}</p> : null}
       {/* **A map lights only what is picked**: a chip, a box or a tile. A layer also lights what
           is hovered, other appearances and what the selection touches. */}
@@ -493,8 +486,6 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
         ? <style>{lit_rules(touched, "var(--s-secondary-edge)")}</style> : null}
       <FlowView
         scene={scene}
-        trace={path && "legs" in path ? path : null}
-        steps={showing?.steps ?? null}
         {...(showing?.now?.length ? { now: showing.now } : {})}
         picked={picked}
         stands_for={stands_for}

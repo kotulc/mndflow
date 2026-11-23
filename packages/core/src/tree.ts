@@ -240,14 +240,6 @@ export function reached(graph: Graph, id: Id, layer: Id | null): { blocks: Id[];
   return { blocks: [id, ...far], lines };
 }
 
-/** **Every join inside a block** (2026-11-17), as hops: both ends in it, at any depth — every
- *  join where `id` is null — counted as `hops_of` counts them. */
-export function joins_in(graph: Graph, id: Id | null): Hop[] {
-  const inside = id ? new Set(subtree(graph, id)) : null;
-  return joins(graph).filter((s) => !inside || (inside.has(s.from) && inside.has(s.to)))
-    .map((s) => ({ from: s.from, to: s.to, names: s.name ? [s.name] : [], n: 1 }));
-}
-
 /** Every join in the graph, worked out once until the graph is written (`kept`): its lines,
  *  owner to owner, but ties and those inside a behaviour; and every behaviour's path steps.
  *  **A line to a holder's own port is followed through it** (2026-11-06): a part joined to its
@@ -323,13 +315,6 @@ export function path_of(graph: Graph, id: Id): { from: Id; to: Id; name: string 
           .filter((to) => to !== from).map((to) => ({ from, to, name: e.name ?? "" })));
       });
   });
-}
-
-/** **Whose path a block shows**: its own, where its behaviours make one, or, for a behaviour, its
- *  owner's. Null where neither travels anywhere. */
-export function path_owner(graph: Graph, id: Id): Id | null {
-  const owner = is_behaviour(graph, id) ? behaviour_owner(graph, id) : id;
-  return owner && path_of(graph, owner).length ? owner : null;
 }
 
 /** What a behaviour's step stands for: a reference's object, or what heads its lifeline. */

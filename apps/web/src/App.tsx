@@ -4,10 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { appearances_of, collect, drop_of, touches_of,
          held_at, in_section, is_inside, is_layer_view, lit as lit_by,
-         object_of, path, path_of, path_owner, registry_at, used_model,
+         object_of, path, registry_at, used_model,
          registry_id, registry_of,
          seen_through, session, shown_name, trace, way_of, DIAGRAM_VIEWS, EDITOR, type Boot, type ViewKind, type Storage, type Dir,
-         type Hop, type Id, type Toggled, is_shown } from "@mnd/core";
+         type Id, type Toggled, is_shown } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
 import { area_of, boxed_place, box_of, clear_of, empty_of, group_way, holds, is_group_id,
          layer_scene, map_focus, project, opened, section_map, MAP_ROOT, set_aspect, set_canvas, set_card as apply_card, BLOCK, CARD, EMPTY,
@@ -283,22 +283,7 @@ export function App({ storage, boot, opening }: {
   /** **What lights as picked is what the tray is about**: the pick where it is drawn, else, on a
    *  map, the block the tray falls back to — the area gone to — where the map draws it. One
    *  subject, so the canvas never disagrees with the tray and the explorer. */
-  /** **A path walked** (2026-11-04): picking a block that owns a path offers its walk; walking
-   *  it lights one hop a step, said in words, the camera fitting both its ends. Picking anything
-   *  else lets it go. */
   const one = s.picked().length === 1 ? s.picked()[0]! : null;
-  const owner = one && graph.blocks[one] ? path_owner(graph, one) : null;
-  const steps = useMemo<Hop[]>(() => (owner ? path_of(graph, owner) : [])
-    .map((x) => ({ from: x.from, to: x.to, names: x.name ? [x.name] : [] })), [graph, owner]);
-  const [walk_at, set_walk_at] = useState<number | null>(null);
-  useEffect(() => set_walk_at(null), [owner]);
-  const walked = walk_at === null ? null : steps[walk_at] ?? null;
-  const hop_said = (h: Hop) => {
-    const [from, to] = [shown_name(graph, h.from), shown_name(graph, h.to)];
-    const names = h.names.filter((n) => n !== to);
-    return `${from} calls ${to}${names.length ? `: ${names.join(", ")}` : ""}`;
-  };
-  const walk = steps.length ? { steps, at: walk_at, onStep: set_walk_at, said: hop_said } : null;
 
   /** **A stop's drawing**: the diagram it shows, else the overview it plays on, read when it is
    *  not the one open. */
@@ -330,12 +315,12 @@ export function App({ storage, boot, opening }: {
   /** **Where the camera looks** (`camera.ts`): one shot from where the app is. A whole section's
    *  page follows its own pick. */
   const shot = useMemo(() => shot_of({
-    graph, scene, seq: opened_n, map, focus: focus_id, one, walked, as, fit, step,
+    graph, scene, seq: opened_n, map, focus: focus_id, one, as, fit, step,
     reveal: as === "page" && system ? view.pick : aim,
     left: left?.seq === opened_n && scene.areas ? area_of(graph, scene, left.layer) : null,
     into: entering ? { area: entering.area, scene: own,
                               as: own ? camera_of(own, false) : "held" } : null,
-  }), [graph, scene, opened_n, map, focus_id, one, walked, as, entered, entering, own, system,
+  }), [graph, scene, opened_n, map, focus_id, one, as, entered, entering, own, system,
        view.pick, whole, diagram, aim, left, fit, step]);
   /** **The entered view takes over where the camera lands** in the chip it flew into. */
   const landed = (at: Shot) => {
@@ -734,7 +719,6 @@ export function App({ storage, boot, opening }: {
             if (made) s.go(made.act, made.args);
           }}
           picked={subject}
-          walk={walk}
           showing={showing}
           onToggle={toggle}
           onPlay={play_from}

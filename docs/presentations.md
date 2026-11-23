@@ -103,10 +103,10 @@ presentations:
 | `fit` | stop | no | blocks the camera must show; default `at` plus every block its steps touch |
 | `show` | stop | no | a block whose diagram the stop opens (a flow, a sequence, a class); its steps then light and mark what that diagram draws |
 | `summary` | stop | yes | one line under the title |
-| `into` | stop | no | a sub model's presentation this stop leads into |
+| `into` | stop | no | a sub model's presentation this stop leads into; the stop's `at` (or `show`) is that sub model's own block |
 | `steps` | stop | no | in order |
-| `relation` | step | one of | a relation of the model, `from -> to`, drawn |
-| `mark` | step | one of | a block ringed |
+| `relation` | step | one of | a relation of the model, `from -> to`, drawn on a diagram; on a treemap its two ends ringed |
+| `mark` | step | one of | a block ringed; inside a shown diagram, named through it (`Entities.Check`, `Context.api`) |
 | `text` | step | yes | one sentence |
 
 **Checked** when the model is read: every `at`, `open`, `fit`, `show` and `mark` names a block of the model; every `relation` is one the model has, or one the shown diagram draws; every stop has a title and a summary; `into` names a presentation of the used model; every `about` item names a block, a definition or a presentation.
@@ -120,12 +120,10 @@ presentations:
 | 2 | `at` is ringed; everything that is neither `at`, around it, inside it, nor a step's end is dimmed (not when `at` is the system itself) | with 1 |
 | 3 | the camera moves to fit `fit` with a margin, never past 4× | 1.1 s, eased |
 | 3b | with `show`: the camera flies into the block as far as its diagram will stand, then the diagram is entered (as entering a chip does today) | with 3 |
-| 4 | each step in turn: its sentence appears in the tray and is current; a relation draws from its start (1 s), a datum travelling it only on a dataflow, where lines carry data (the user, 2026-11-22); earlier relations fade to 40% on a map, a soft accent on a diagram; a mark rings its block | one step every `pace` (1.7 s) |
+| 4 | each step in turn: its sentence appears in the tray and is current; on a diagram a relation draws from its start (1 s), a datum travelling it only on a dataflow, where lines carry data, earlier relations a soft accent; **on a treemap a relation rings its two ends**, no line drawn (the user, 2026-11-22); a mark rings its block | one step every `pace` (1.7 s) |
 
-- **lines run under chips**: a relation line passes beneath every chip and ends at its target's edge; its label sits above everything
-- **labels never cover**: a label goes at the point along its line nearest the middle where it covers no chip, heading or other label; plain text with a halo, no pill
 - **nothing else moves**: no layout change but opening and closing; no second drawing
-- **the step now reads where lines overlap** (the user, 2026-11-22): on a diagram, lines no step has shown dim (a sequence's lifelines stay, being its frame), earlier steps' lines go a soft accent, and the step now is raised over every line and card on a halo of the ground, drawn in the accent (a datum travelling it on a dataflow alone); on a map a leg is never named on the line (no pill, no badge): the step's words are the tray's
+- **the step now reads where lines overlap** (the user, 2026-11-22): on a diagram, lines no step has shown dim (a sequence's lifelines stay, being its frame), earlier steps' lines go a soft accent, and the step now is raised over every line and card on a halo of the ground, drawn in the accent (a datum travelling it on a dataflow alone); a treemap draws no line at all (the user, 2026-11-22): the step's words are the tray's, its ends ringed
 
 **Played through, as a video is** (the user, 2026-11-21): steps build at the pace; once a stop's are all shown it holds (at least 2.5 s), then goes on — into the stop's sub presentation where it leads into one, else the next stop, and out again after a sub presentation's last — and pauses at the very end. Paused, or at the *on click* pace, nothing moves on its own.
 
@@ -144,11 +142,12 @@ presentations:
 
 | Tour | Stops |
 |---|---|
-| **each model's own**, named as the model | its overview (`at` the first part an actor reaches), every line in order; then each diagram in its folder, shown and stepped through its lines in order |
-| **the top tour**, in the first model (the overview) | its own stops, then one per other model: shown, its first lines from its actors stepped, leading `into` that model's first presentation |
+| **each model's own**, named as the model | its treemap (`at` the first part an actor reaches), **each part marked** with its description (2026-11-22: a treemap draws no lines); then each diagram in its folder, shown and stepped through its lines in order — the context first where its file comes first |
+| **the top tour**, in the first model (the overview) | its own stops, the first saying what the system is (the package's description, never the model's again); then one per other model, shown, leading `into` that model's first presentation, no line stepped |
 
 - **additive**: a model's tour of that name is kept unless `--force`; any draft that adds faults is taken back, every file left as it was
-- **`check` warns** of a diagram no stop of any presentation in the package shows (`presentation check <model>`), never failing: the drafter decides what to skip
+- **`check` warns**, never failing (`presentation check <model or folder>`): of a diagram of the model no stop shows (a use of a library part is no diagram here), and of a stop stepping lines with no `show`, on a treemap that draws none (2026-11-22)
+- **`list` reads as played** (round 6): each stop's place, `at`, `show`, `into`, summary and every step's sentence with what it lights
 - a step's sentence is drafted as `from → to: name.`
 
 
@@ -170,10 +169,9 @@ presentations:
 | read and check `presentations:`, `about:`, `open:` in a model file | core `diagram.ts` (`presentation_of`, `stop_of`, `about_of`), `sources.ts` `overview` (names read as blocks, a step's relation as a line the model or the shown diagram has; what names nothing is a note `check` prints) |
 | a presentation's state: presentation, stop, steps shown, dive, the stack entered | core `present.ts` (`Play`, `play_next`, `play_prev`, `play_into`, `play_out`, `pace_of`) |
 | the player: timer, keys, what a stop opens, rings, dims and lights, the camera's fit | web `present.ts` (`usePresent`, `showing_of`, `fit_of`); web `camera.ts` `fit_of` |
-| the overview: the model root of the one tree view | views `map.ts` `layer_map`, `opened`; views `overview.ts` (`zones_of`, `around`, `about_of`, `lines_of`) |
+| the overview: the model root of the one tree view | views `map.ts` `layer_map`, `opened`; views `overview.ts` (`around`, `about_room`, `about_of`) |
 | boxes that open and close per stop, and by hand | views `tree.ts` `layer_tree` (an open set); web `App.tsx` `open`; theme `chip.tsx` `Toggle`; stage `Stage.tsx` (`data-toggle`) |
-| lighting a relation, drawn in order, its datum travelling along it | stage `Traced.tsx` (`steps`: earlier faded, the last drawn, `Datum`, `Label`), `flow.css` *A presentation's steps* |
-| the tray's presentation section | tray `Presentation.tsx` (replacing `Walk.tsx`), leading the overview |
+| lighting a relation, drawn in order | on a diagram stage `Wire.tsx` (`NowContext`, drawn in; `Datum` on a dataflow), `Stage.tsx` (`stepping`, `PAST`); on a treemap its two ends ringed, web `present.ts` `showing_of` |
 | the About band | views `overview.ts` `about_band`; stage `nodes.tsx` `AboutNode` (`data-play` plays, `data-about` picks) |
 | a stop entering a diagram (`show`) | web `App.tsx`: the stop's drawing is read when it is not the one open |
 | the CLI: list, draft, check | cli `tools.ts` (`presentations`, `draft`, `tour`), `main.ts` `presentation`, `unvisited` |

@@ -7,8 +7,8 @@
 
 | Rule | Detail |
 |---|---|
-| **the treemap fills its space** | every box's cells fill it, sized by weight (square root of what each holds; never how often it is joined); a few chips or a hundred read as a whole. **The map is laid the canvas's size** (larger only when it holds many chips), so it reads whole at 100%; a model's middle is laid in what its zones and About leave, keeping at least 70% of the canvas each way |
-| **seen whole** | the camera shows a tree view whole and never zooms to a pick; only a walk fits its step. A click only picks, the crumbs staying with the canvas (2026-11-19), **in the explorer as on the canvas: what an entered treemap holds is picked there, never jumped out of** (2026-11-16); two enter. **Anything with a well enters**, in either section — a library folder, a definition holding parts (its drawing), a group; a leaf only picks |
+| **the treemap fills its space** | every box's cells fill it, sized by weight (square root of what each holds; never how often it is joined); a few chips or a hundred read as a whole. **The map is laid the canvas's size** (larger only when it holds many chips), so it reads whole at 100%; a model's middle is laid in what About leaves |
+| **seen whole** | the camera shows a tree view whole and never zooms to a pick. A click only picks, the crumbs staying with the canvas (2026-11-19), **in the explorer as on the canvas: what an entered treemap holds is picked there, never jumped out of** (2026-11-16); two enter. **Anything with a well enters**, in either section — a library folder, a definition holding parts (its drawing), a group; a leaf only picks |
 | **a package's folder enters as its treemap** | entered from the map, in either section, a folder draws what it files as a tree view, **framed by its own box** (its name and counts) as the map frames a package; leaving (the crumbs' up) goes to the folder holding it, else the map; Escape goes to the map. Projected bare by a tool, a folder still draws its layer (2026-11-16) |
 | **landscape-biased squarify** | cells are laid in a space half as wide, then stretched 2×, so cells come out wider than tall and every name reads across; works on landscape and portrait canvases alike |
 | **a budget from the canvas** (agreed 2026-11-16, scale-plan.md) | a view draws as many chips as its room holds at a readable size (a header over the least well, with its air) and no more; a project of ten blocks or ten thousand reads as one screen. The map is never laid larger than the canvas |
@@ -54,14 +54,9 @@ A ladder of fill and border, strongest first.
 - **no well under ~26px of room**: the cell shows its header alone
 
 
-## Lines between chips
+## No lines between chips
 
-- **one set of links a map** (2026-11-18): every relation under the map lifted to the chips it draws, one leg per pair, weighted by how many it carries (a few stroke steps); none inside one chip; never between a box and what it holds
-- **said in words at rest, drawn only when lit** (2026-11-18; faint lines always drawn tried 2026-11-17, too noisy, crossed chips): a chip's foot names its links — `→` what it reaches, `←` what reaches it, `↔` both — in up to two rows under its well, where it has room; a chip without room says them only when lit
-- **hover or pick lights the same legs**, never others: those crossing the block's edge, routed direct — straight across a gap, else one bend — over what they pass (routing round chips tried 2026-11-18: bends too tight in the narrow gaps)
-- **a lit leg is never named on the map** (the user, 2026-11-22; the pills and badges of 2026-11-18 retired): what it carries is said on hover — its relations' names, `n relations` — and a presentation's step in the tray; a leg between neighbours is drawn as any other
-- **an arrow reaches into its target**, a few pixels past its border at every zoom, so the border never hides it (2026-11-18)
-- **a line to a holder's port counts once**: through to the part behind it, never also from the holder (2026-11-17)
+**A treemap draws containment alone** (the user, 2026-11-22): no lines, legs, link words or hops between chips. What a block relates to is said in the tray (its overview's *how it is used*) and drawn in the diagrams made for it (context, flow, sequence, dataflow, ...). Lines on a treemap were tried 2026-11-04 to 2026-11-22 — always drawn, drawn when lit, named in pills, said in words — and none read: one leg stood for many relations of different kinds, and no layout of them over a treemap was legible. A pick on a treemap lights the chip and what it holds, nothing else; a presentation step naming a relation rings its two ends.
 
 
 ## Rejected along the way (2026-11-16)

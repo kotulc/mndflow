@@ -5,7 +5,7 @@ import { alias_of, attributes_of, def_of, dir_of, domain_of, frozen, head_of, in
          lens_of, is_box, opens, flow_of, is_notation, is_flat, notation_of, is_interface, is_named,
          is_participant,
          base_of, resolved, role_of, shape_of, shown_name, stamps_of, subtypes, used_by,
-         path_of, way_of, type Graph, type Id } from "@mnd/core";
+         way_of, type Graph, type Id } from "@mnd/core";
 import { body_lines, face_table, face_text, handle_of } from "./face";
 import { card_shape, look_of, swatch_of } from "./look";
 import { face_of, type Face } from "./size";
@@ -36,7 +36,6 @@ export function marks_of(graph: Graph, id: Id): CardClass[] {
   if (def && notation_of(graph, def)) out.push("notation");
   if (module === "note" && !b.def) out.push("note");
   if (module === "label" && !b.def) out.push("label");
-  if (path_of(graph, id).length) out.push("walks");
   /** A block that holds wears its shape, whatever kind it descends from; a folder is a box. */
   const shape = shape_of(graph, id);
   if (shape) out.push(shape);

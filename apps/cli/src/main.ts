@@ -13,7 +13,7 @@ import { draw, draw_svg, faults, outline, project } from "@mnd/views";
 import { measured, scaled } from "./measure";
 import { define, inline_home, kept_units, write_defined } from "./define";
 import { python_fact, is_python } from "./python";
-import { diagram_file, draft, lines_in, presentations, tour } from "./tools";
+import { diagram_file, draft, lines_in, played, presentations, tour } from "./tools";
 import { held_in, is_facts, outside_of, selection_from } from "./from_facts";
 import { node_net } from "./ports";
 import { as_file, from_sysml, shape_of, to_sysml } from "./sysml";
@@ -528,7 +528,7 @@ async function tool(verb: string, first: string, rest: string[]): Promise<void> 
     }
     const [model] = loose(rest);
     if (!model) fail("mnd presentation <list|draft|check> <model.yaml>", 2);
-    if (first === "list") console.log(JSON.stringify(presentations(model!), null, 2));
+    if (first === "list") console.log(played(model!));
     else if (first === "draft" && statSync(model!).isDirectory()) {
       /** **The whole model's tour** (2026-11-21), each model file's drafted and checked; any
        *  that adds faults is taken back, every file left as it was. */
@@ -568,13 +568,36 @@ async function tool(verb: string, first: string, rest: string[]): Promise<void> 
         process.exit(1);
       }
     } else if (first === "check") {
-      const notes = model_notes(model!);
-      for (const n of notes) console.log(`  ${n}`);
-      for (const w of unvisited(model!)) console.log(`  warning: ${w}`);
-      console.log(notes.length ? `${notes.length} to fix` : "clean");
-      if (notes.length) process.exit(1);
+      /** A folder checks each model file in it (round 6: it was refused). */
+      const files = statSync(model!).isDirectory() ? model_files(model!) : [model!];
+      let faults = 0;
+      for (const file of files) {
+        const notes = model_notes(file);
+        faults += notes.length;
+        if (files.length > 1) console.log(relative(process.cwd(), file));
+        for (const n of notes) console.log(`  ${n}`);
+        for (const w of [...unvisited(file), ...on_treemap(file)]) console.log(`  warning: ${w}`);
+      }
+      console.log(faults ? `${faults} to fix` : "clean");
+      if (faults) process.exit(1);
     } else fail(`no presentation command ${first}: list, draft, check`, 2);
   } catch (e) { fail(e); }
+}
+
+/** The model files of a folder (`type: model`), in collect's order. */
+function model_files(folder: string): string[] {
+  return readdirSync(folder).filter((f) => /\.ya?ml$/.test(f))
+    .map((f) => join(folder, f))
+    .filter((f) => (parse(readFileSync(f, "utf8")) as { type?: string } | null)?.type === "model");
+}
+
+/** **A line stepped on a treemap** (2026-11-22): a stop showing no diagram plays on the model's
+ *  treemap, which draws no lines, so its relation steps only ring their ends; a warning. */
+function on_treemap(model: string): string[] {
+  return presentations(model).flatMap((p) => p.stops
+    .filter((s) => !s.show && ((s.steps ?? []) as { relation?: string }[]).some((t) => t.relation))
+    .map((s) => `${p.name} › ${s.title}: steps lines on the treemap, which draws none; `
+      + "show a diagram (the context) for them, or mark the parts"));
 }
 
 /** What collecting a model's package says of that model's file. */
@@ -586,7 +609,8 @@ function model_notes(model: string): string[] {
 
 /** **A diagram no tour visits** (the user, 2026-11-21): each diagram of the model a file holds
  *  that no stop of any presentation in its package shows, directly or through a usage. A
- *  warning: whoever drafts the tour decides what it skips. */
+ *  warning: whoever drafts the tour decides what it skips. **Only the model's own diagrams**
+ *  (round 6): a use of a library part, which reads through as its drawing, is no diagram here. */
 function unvisited(model: string): string[] {
   const graph = fold(read(gathered(package_root(resolve(model)), true).text, FLOOR).log, FLOOR);
   const name = (parse(readFileSync(model, "utf8")) as { name?: string })?.name
@@ -594,10 +618,11 @@ function unvisited(model: string): string[] {
   const shown = new Set(Object.values(graph.blocks).flatMap((b) => (b.presentations ?? [])
     .flatMap((p) => p.stops.flatMap((s) => (s.show ? [s.show, graph.blocks[s.show]?.type ?? ""]
       : [])))));
-  return Object.keys(graph.blocks).filter((id) => package_of(graph, id) === graph.root
-    && !!diagram_kind(graph, id) && !is_model(graph, id) && !shown.has(id)
+  const own = (id: string) => package_of(graph, graph.blocks[id]?.type ?? "") !== graph.root;
+  return [...new Set(Object.keys(graph.blocks).filter((id) => package_of(graph, id) === graph.root
+    && !!diagram_kind(graph, id) && !is_model(graph, id) && own(id) && !shown.has(id)
     && path(graph, id).some((b) => is_model(graph, b.id) && b.name === name))
-    .map((id) => `${shown_name(graph, id)} is in no tour: no stop shows it`);
+    .map((id) => `${shown_name(graph, id)} is in no tour: no stop shows it`))];
 }
 
 /** **What each hue reaches** (2026-11-20): every block of the workspace by the hue its look

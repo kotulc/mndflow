@@ -15,7 +15,7 @@ export { lines_drawn, type Drawn } from "./drawn";
 export { measure, type Measure } from "./measure";
 export { scale_of, type Scale } from "./scale";
 export { avoided_run, load_avoid, routes_of } from "./avoid";
-export { hop_trace, on_map, picked_trace, trace_of, type Leg, type Trace } from "./trace";
+export { on_map, picked_trace, type MapLit } from "./picked";
 export * from "./svg";
 export * from "./text";
 
