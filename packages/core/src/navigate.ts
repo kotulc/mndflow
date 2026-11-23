@@ -7,14 +7,26 @@
  *  treemap of chips, the pick its focus. */
 
 import { NAMED_VIEWS } from "./components";
-import { def_of, is_model, models, setting_of } from "./defs";
+import { def_of, is_aside, is_model, models, setting_of } from "./defs";
 import { inline, is_filing, is_folder, is_grid, is_region, layer_of } from "./holders";
 import { registry_at, registry_id, registry_of } from "./library";
 import { opens } from "./names";
 import { at_cut, filed_defs, in_section, is_layer_view, on_side, type Lists, type Section,
          type ViewKind } from "./sections";
-import { children, line_layer, of_ref, path, placing_of, stands_for } from "./tree";
+import { children, is_interface, line_layer, of_ref, path, placing_of, stands_for } from "./tree";
 import { type Block, type Graph, type Id } from "./types";
+
+/** **The floor** (docs/diagrams/README.md *Sub diagrams*): the fewest parts, steps or states
+ *  an inside must hold to be a diagram worth entering. A default. */
+export const LEAST = 3;
+
+/** **Whether a block's inside is worth a diagram** (the user, 2026-11-21: a class holding one
+ *  function is a block, a module holding four classes enters): it holds at least `LEAST` parts,
+ *  its ports and notes aside. */
+export function worth_entering(graph: Graph, id: Id): boolean {
+  return children(graph, id).filter((b) => !is_interface(graph, b.id) && !is_aside(graph, b.id))
+    .length >= LEAST;
+}
 
 /** Where a host's sections start: the forest above every package, or the workspace's root. */
 export type Top = "forest" | "workspace";
@@ -92,12 +104,15 @@ export function lens_of(graph: Graph, id: Id, lists?: Lists): ViewKind | null {
   if (b.parent === null && lists !== "domain" && !on_side(graph, id, "structure")) return null;
   if (b.def) {
     /** In the library a definition holding parts opens its own drawing, as a model does. */
-    const opens = is_model(graph, id) || (lists === "domain" && children(graph, id).length > 0);
+    const opens = is_model(graph, id) || (lists === "domain" && worth_entering(graph, id));
     return opens ? diagram_of(graph, id) ?? "internal" : null;
   }
-  /** The library enters its packages, folders and definitions only: a part of one is read in
-   *  the tray. */
-  if (lists === "domain") return is_filing(graph, id) && filed_defs(graph, id).length ? "internal" : null;
+  /** The library enters its packages, folders and definitions, and **a part whose inside is
+   *  worth a diagram** (the user, 2026-11-21); a smaller part is read in the tray. */
+  if (lists === "domain") {
+    return (is_filing(graph, id) && filed_defs(graph, id).length) || worth_entering(graph, id)
+      ? "internal" : null;
+  }
   const target = of_ref(graph, id) ? stands_for(graph, id) : null;
   if (target && target.id !== id) return lens_of(graph, target.id, lists);
   if (is_filing(graph, id)) return "internal";

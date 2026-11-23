@@ -262,13 +262,33 @@ function flow(said: Read): Record<string, unknown> {
 
 /** **A context from imports**: a part per unit, a dependency line per import. What is across —
  *  the packages from outside — is never written here (context.md, agreed 2): `draw` names them
- *  for the model holding the context. */
+ *  for the model holding the context. **Parts from several packages are grouped by package**
+ *  (2026-11-21: hierarchical layouts), so the drawing ranks packages and their parts together. */
 function context(said: Read): Record<string, unknown> {
   const parts = names_of(said.edges.flatMap((e) => [e.from, e.to]));
   const named = new Map(parts.map((n) => [n.unit, n.name]));
-  const line = (e: Edge) => `${named.get(e.from) ?? e.from} -> ${named.get(e.to) ?? e.to}`;
-  return { blocks: parts.map(referenced),
-           relations: [{ dependency: [...new Set(said.edges.map(line))] }] };
+  const name = (u: string) => named.get(u) ?? u;
+  /** **A pair is joined once** (design.md: a line back makes it point both ways). */
+  const ends = [...new Map(said.edges.map((e) => [`${name(e.from)}|${name(e.to)}`,
+                                                  [name(e.from), name(e.to)] as const]))];
+  const has = new Set(ends.map(([k]) => k));
+  const lines = ends.flatMap(([, [a, b]], i) => {
+    const back = ends.findIndex(([k]) => k === `${b}|${a}`);
+    if (!has.has(`${b}|${a}`)) return [`${a} -> ${b}`];
+    return i < back ? [`${a} <-> ${b}`] : [];
+  });
+  const relations = [{ dependency: lines }];
+  const holder = (u: string) => u.slice(0, Math.max(0, u.lastIndexOf(".")));
+  const holders = [...new Set(parts.map((n) => holder(n.unit)))];
+  const shared = holders.filter((h) => h && parts.filter((n) => holder(n.unit) === h).length > 1);
+  if (holders.length < 2 || !shared.length) return { blocks: parts.map(referenced), relations };
+  const group = new Map(names_of(shared).map((n) => [n.unit, n.name]));
+  const taken = new Set(parts.map((n) => n.name));
+  for (const [h, g] of group) if (taken.has(g)) group.set(h, `${g} package`);
+  return { blocks: [...parts.map((n) => {
+    const g = group.get(holder(n.unit));
+    return g ? { ...referenced(n), groups: [g] } : referenced(n);
+  }), ...[...group.values()].map((g) => ({ name: g, type: "group" }))], relations };
 }
 
 /** The packages from outside a fact answer names, by how many parts lean on each. */

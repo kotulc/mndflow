@@ -63,6 +63,8 @@ relations:
 
 | Grows | What happens |
 |---|---|
+| **separate chains** | `draw` warns: one story reads best; keep one chain, or join them where the story does (2026-11-21) |
+| **a call tree** | where the main way passes fewer than half the steps, the flow branches more than it runs: it is ranked as a hierarchy, inputs first along the axis, not laned (2026-11-21) |
 | **steps** | one row along the axis; **where one row would leave the drawing far from the canvas's shape, it wraps** (the user, 2026-11-21: every diagram respects the canvas's aspect): cut between steps into rows (columns where the axis runs down), each read the same way, as many as bring it nearest the shape; past a default length (7) whoever draws it cuts sub flows, each a step marked ↳ entered by *into*, only where both sides keep the floor (README *Sub diagrams*) |
 | **reads and writes of one step** | one port per target on the wall nearest the step; the cards across sit in step order, so lines run straight and never cross |
 | **targets of one port** | one card, its targets as name rows |

@@ -4,7 +4,7 @@
 
 import { base_of, def_at, is_model } from "./defs";
 import { children, stands_for } from "./tree";
-import type { AboutGroup, Graph, Id, Presentation, Stop } from "./types";
+import type { AboutGroup, Graph, Id, Presentation, Stop, StopStep } from "./types";
 
 /** Where a reader is: the model and its presentation, the stop, how many of its steps are shown,
  *  a part dived into (null at the stop), and the presentations entered from, outermost first. */
@@ -70,6 +70,36 @@ export function model_library(graph: Graph, model: Id): Id[] {
 /** Whether a definition is one of `base`'s, which every model uses and About never lists. */
 function is_base_kind(id: Id): boolean {
   return !id.includes(".");
+}
+
+/** **Where an element is presented** (the user, 2026-11-22): each presentation naming it, with
+ *  the stops that do — a model's own, every stop; else a stop at it or showing it, or a step
+ *  marking it or lighting a line it is an end of (a definition, through its usages) — each with
+ *  the first step's words that name it, else its summary. */
+export type Featured = { model: Id; at: number; name: string;
+                         stops: { at: number; title: string; says: string }[] };
+export function featured(graph: Graph, id: Id): Featured[] {
+  const b = graph.blocks[id];
+  const ids = new Set<Id>([id, ...(b?.def ? Object.values(graph.blocks)
+    .filter((u) => !u.def && u.type === id).map((u) => u.id) : [])]);
+  const names = (s: StopStep) => {
+    const e = s.relation ? graph.edges[s.relation] : undefined;
+    return (!!s.mark && ids.has(s.mark)) || (!!s.relation && ids.has(s.relation))
+      || (!!e && (ids.has(e.from) || ids.has(e.to)));
+  };
+  const out: Featured[] = [];
+  for (const m of Object.values(graph.blocks)) {
+    (m.presentations ?? []).forEach((p, at) => {
+      const own = m.id === id;
+      const stops = p.stops.flatMap((s, i) => {
+        const step = (s.steps ?? []).find(names);
+        const hit = own || ids.has(s.at) || (!!s.show && ids.has(s.show)) || !!step;
+        return hit ? [{ at: i, title: s.title, says: step?.text ?? s.summary }] : [];
+      });
+      if (stops.length) out.push({ model: m.id, at, name: p.name, stops });
+    });
+  }
+  return out;
 }
 
 /** The stop a reader is at, and the presentation it is of. */

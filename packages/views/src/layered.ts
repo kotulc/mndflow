@@ -16,14 +16,10 @@ export function layered(graph: Graph, layer: Id | null, units: readonly Sized[])
   const aside = units.filter((it) => is_aside(graph, it.b.id));
   const ranked = units.filter((it) => !is_aside(graph, it.b.id));
   const ids = new Set(ranked.map((it) => it.b.id));
-  /** Ranked down the page and across it, **keeping whichever fits the canvas's shape**. */
-  const ways = (["TB", "LR"] as const).map((dir) => ranks(graph, layer, ranked, ids, dir));
-  const off = (p: readonly Placed[]) => {
-    const w = Math.max(...p.map((u) => u.x + u.w)) - Math.min(...p.map((u) => u.x));
-    const h = Math.max(...p.map((u) => u.y + u.h)) - Math.min(...p.map((u) => u.y));
-    return Math.abs(Math.log(Math.max(1, w) / Math.max(1, h) / SHAPE.aspect));
-  };
-  const placed = !ranked.length ? [] : off(ways[1]!) < off(ways[0]!) ? ways[1]! : ways[0]!;
+  /** **Inputs to outputs along the canvas** (the user, 2026-11-21): across a landscape canvas,
+   *  down a portrait one. */
+  const placed = !ranked.length ? []
+    : ranks(graph, layer, ranked, ids, SHAPE.aspect >= 1 ? "LR" : "TB");
   return [...placed, ...floated(graph, layer, aside, placed)];
 }
 

@@ -66,13 +66,14 @@ export function usePresent(graph: Graph, layer: Id | null) {
     return () => clearTimeout(wait);
   }, [play, stop, steps.length, seconds, paused, last]);
 
-  /** A model's presentation started on the layer drawing its overview. */
-  const start = (at: number) => {
+  /** A model's presentation started on the layer drawing its overview, at its first stop or
+   *  the one asked for. */
+  const start = (at: number, from = 0) => {
     const model = layer ? used_model(graph, layer) : null;
     if (!model || !layer || !presentations_of(graph, model)[at]) return;
     set_where([layer]);
     set_paused(false);
-    set_play(play_start(model, at));
+    set_play(play_at(play_start(model, at), from));
   };
   const stop_playing = () => { set_play(null); set_where([]); set_paused(false); };
   /** Play and pause, one control: played again from its end, it starts over. */
@@ -90,7 +91,6 @@ export function usePresent(graph: Graph, layer: Id | null) {
   });
   const prev = () => set_play((p) => (p ? play_prev(p) : p));
   const go = (at: number) => set_play((p) => (p ? play_at(p, at) : p));
-  const replay = () => set_play((p) => (p ? { ...p, shown: 0, dive: null } : p));
   const into = () => {
     if (!play || !stop?.into) return;
     const n = play_into(graph, play);
@@ -133,7 +133,7 @@ export function usePresent(graph: Graph, layer: Id | null) {
   const diving = stop && layer === home ? play?.dive ?? null : null;
 
   return { play, stop, presentation: now?.presentation ?? null, open, diving, on, home,
-           pace: seconds, paused, start, stop_playing, toggle, next, prev, go, replay, into, out,
+           pace: seconds, paused, start, stop_playing, toggle, next, prev, go, into, out,
            dive, resume, set_pace };
 }
 
@@ -206,13 +206,25 @@ export function step_of(graph: Graph, layer: Id | null, p: Presenting): Id[] | n
   return e ? [e.to, e.from] : last?.mark ? [last.mark] : null;
 }
 
+/** **What the tray is about while playing** (the user, 2026-11-22): the part dived into, else
+ *  the block the step just shown lands on or marks, else the diagram the stop shows, else its
+ *  block. */
+export function current_of(graph: Graph, p: Presenting): Id | null {
+  const { play, stop } = p;
+  if (!play || !stop) return null;
+  if (play.dive) return play.dive;
+  const last = (stop.steps ?? [])[Math.min(play.shown, stop.steps?.length ?? 0) - 1];
+  const e = last?.relation ? graph.edges[last.relation] : undefined;
+  return e?.to ?? last?.mark ?? stop.show ?? stop.at;
+}
+
 /** **What the camera fits** at a stop: a dive's part; else the stop's `fit`, else its block and
  *  every block its steps touch. Null off its overview, and where it shows a diagram. */
 export function fit_of(graph: Graph, layer: Id | null, p: Presenting): Id[] | null {
   const { play, stop, on } = p;
   if (!play || !stop || layer !== on) return null;
   if (play.dive) return [play.dive];
-  /** A shown diagram is fitted whole, the player's room left below it. */
+  /** A shown diagram is fitted whole. */
   if (stop.show) return [];
   if (stop.fit) return stop.fit;
   const ends = (stop.steps ?? []).flatMap((s) => {

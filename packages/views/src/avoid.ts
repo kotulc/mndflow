@@ -29,6 +29,9 @@ const SQUARE = 1.5;
 /** The room round cards for a line libavoid could not route with a seat's: a few pixels. */
 const TIGHT = SEAT / 4;
 
+/** What a crossing costs a route, in its length: a few cards' width round is cheaper. */
+const CROSSING = 400;
+
 /** The most lines libavoid is asked to route at once: its time grows far faster than the lines
  *  (60 in under half a second, 100 in over ten), so a busier layer runs as `route` draws it. */
 const MOST = 64;
@@ -77,6 +80,8 @@ function routed(scene: Scene, asked: readonly LineEdge[], buffer: number): Map<s
   router.setRoutingParameter(A.RoutingParameter.shapeBufferDistance, buffer);
   router.setRoutingParameter(A.RoutingParameter.idealNudgingDistance, SEAT);
   router.setRoutingParameter(A.RoutingParameter.segmentPenalty, 50);
+  /** **A crossing costs a long way round** (2026-11-21: paths read in a presentation). */
+  router.setRoutingParameter(A.RoutingParameter.crossingPenalty, CROSSING);
   router.setRoutingOption(A.RoutingOption.nudgeOrthogonalSegmentsConnectedToShapes, false);
   router.setRoutingOption(A.RoutingOption.nudgeSharedPathsWithCommonEndPoint, true);
 

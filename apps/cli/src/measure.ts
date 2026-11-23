@@ -4,7 +4,7 @@
 
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
-import { children, diagram_kind, is_model, package_of, path, placing_of, shown_name, type Graph,
+import { diagram_kind, is_filing, is_model, lens_of, package_of, path, placing_of, shown_name, type Graph,
          type Id } from "@mnd/core";
 import { extent, layer_scene, load_avoid, measure, routes_of, scale_of, set_aspect, set_canvas,
          type Measure, type Scale, type Scene } from "@mnd/views";
@@ -24,10 +24,10 @@ const CANVASES = { landscape: [1200, 750], portrait: [750, 1200], small: [520, 4
 export async function measured(graph: Graph, layer: Id | null): Promise<string[]> {
   const wasm = join(dirname(createRequire(import.meta.url).resolve("libavoid-js")), "libavoid.wasm");
   await load_avoid(wasm);
-  /** Every diagram, and every library definition of the workspace holding parts, whose view
-   *  draws what is across its frame. A treemap is drawn without a layout to measure. */
-  const library = (id: Id) => !!graph.blocks[id]?.def && !is_model(graph, id)
-    && package_of(graph, id) === graph.root && children(graph, id).length > 0;
+  /** Every diagram, and every library block the library enters (`lens_of`: its inside worth a
+   *  diagram), whose view draws what is across its frame. A treemap is drawn without a layout to measure. */
+  const library = (id: Id) => !is_model(graph, id) && package_of(graph, id) === graph.root
+    && !is_filing(graph, id) && lens_of(graph, id, "domain") !== null;
   const layers = layer ? [layer] : Object.keys(graph.blocks).filter((id) =>
     (!!diagram_kind(graph, id) || library(id)) && placing_of(graph, id) !== "treemap");
   const rows: { name: string; shape: string; m: Measure; fit: number }[] = [];
@@ -39,15 +39,15 @@ export async function measured(graph: Graph, layer: Id | null): Promise<string[]
                   m: measure(scene, routes_of(scene)), fit: fit_of(scene, shape) });
     }
   }
-  const worst = (m: Measure) => m.crossings + m.covered + m.shared + m.tight
+  const worst = (m: Measure) => m.crossings + m.through + m.covered + m.shared + m.tight
     + (m.wrong + m.loose) * 10;
   rows.sort((a, z) => worst(z.m) - worst(a.m) || a.name.localeCompare(z.name));
   const total = (k: keyof Omit<Measure, "found">) => rows.reduce((n, r) => n + r.m[k], 0);
-  const out = [`cross cover share tight wrong loose lines   fit  shape      layer`,
-               ...rows.map(({ name, shape, m, fit }) => [m.crossings, m.covered, m.shared, m.tight,
+  const out = [`cross  thru cover share tight wrong loose lines   fit  shape      layer`,
+               ...rows.map(({ name, shape, m, fit }) => [m.crossings, m.through, m.covered, m.shared, m.tight,
                  m.wrong, m.loose, m.lines].map((n, i) => String(n).padStart(i ? 6 : 5)).join("")
                  + `${`${fit}%`.padStart(6)}${fit < SMALL ? "!" : " "} ${shape.padEnd(10)} ${name}`),
-               `${[total("crossings"), total("covered"), total("shared"), total("tight"),
+               `${[total("crossings"), total("through"), total("covered"), total("shared"), total("tight"),
                    total("wrong"), total("loose"), total("lines")]
                  .map((n, i) => String(n).padStart(i ? 6 : 5)).join("")}  total`];
   const small = rows.filter((r) => r.fit < SMALL).length;

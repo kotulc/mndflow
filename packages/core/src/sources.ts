@@ -17,8 +17,8 @@
 
 import { parseAllDocuments } from "yaml";
 import { read_card } from "./card";
-import { base_of, block_base, def_at, dir_of, has_trait, is_notation, package_of, setting_of,
-         traits_of } from "./defs";
+import { base_of, block_base, def_at, dir_of, has_trait, is_model, is_notation, package_of,
+         setting_of, traits_of } from "./defs";
 import { edge_of, long_form, type Edge, type Entry, type FileSpec,
          type LongForm } from "./diagram";
 import { renamed, write } from "./file";
@@ -331,6 +331,13 @@ export function collect(name: string, leaves: readonly Leaf[], over: Graph,
   /** A top folder holding nothing but definitions files them. */
   for (const id of tops) {
     if (!holds_structure(graph, id)) graph.blocks[id]!.tree = "definitions";
+  }
+  /** **A model says what system it models** (the user, 2026-11-22): a package holding models
+   *  describes the system — what it is, what it does, for whom — on its root. */
+  if (!graph.blocks[slug]?.description?.trim()
+      && subtree(graph, slug).some((id) => is_model(graph, id))) {
+    notes.push(`${DEFINITIONS}: says nothing of the system it models; give its root block a `
+      + "description: what the system is, what it does and for whom, in a sentence or two");
   }
   return { text: write(graph, slug, slug), made: [...made.keys()], clashes, notes };
 }
@@ -760,14 +767,26 @@ function overview(ctx: Ctx, id: Id, e: Entry): void {
       const line = (word: string) => {
         let ends;
         try { ends = edge_of(word); } catch { said(`${where}: ${word} is no relation`); return; }
+        /** An end in the shown diagram: a block under it, else a port of the diagram itself, as
+         *  its own file names it (`ping -> urls`). */
         const in_shown = (w: string): { at: Id; part?: Id } | undefined => {
           const at = end(w);
-          return at ? { at } : undefined;
+          if (at) return { at };
+          const bare = s.show && w.trim().startsWith(`${s.show}${STEP}`)
+            ? w.trim().slice(s.show.length + 1) : w.trim();
+          for (const x of shown) {
+            const port = (ctx.graph.blocks[x]?.ports ?? []).find((q) => q.name === bare);
+            if (port) return { at: x, part: port.id };
+          }
+          return undefined;
         };
         const [from, to] = [in_shown(ends.from) ?? end_of(ctx, ends.from),
                             in_shown(ends.to) ?? end_of(ctx, ends.to)];
-        const hit = from && to ? Object.values(ctx.graph.edges).find((x) => x.from === from.at
-          && x.to === to.at && (!from.part || x.fromPort === from.part)
+        /** An end named by a port meets the line at that port, its block the line's end. */
+        const meets = (end: Id, port: Id | undefined, at: Id) => end === at || port === at;
+        const hit = from && to ? Object.values(ctx.graph.edges).find((x) =>
+          meets(x.from, x.fromPort, from.at) && meets(x.to, x.toPort, to.at)
+          && (!from.part || x.fromPort === from.part)
           && (!to.part || x.toPort === to.part) && within.has(x.from)) : undefined;
         if (!hit) said(`${where}: ${word} is no relation the model has${show ? ` or ${s.show} draws` : ""}; `
           + "add it, or name its ends as the file holding it does (a part of a part: `outer.inner`)");
@@ -1007,6 +1026,8 @@ function defined(graph: Graph, slug: Id, text: string | undefined, files: readon
     const kept = renamed(b, ids);
     if (b.id === from.root) {
       if (kept.library) graph.blocks[slug]!.library = kept.library;
+      /** **What the system is** (2026-11-22): the package's own description, its root's. */
+      if (b.description) graph.blocks[slug]!.description = b.description;
       if (b.overrides) graph.blocks[slug]!.overrides = overrides_of(graph, b.overrides, unnamed);
       if (b.shown) graph.blocks[slug]!.shown = b.shown.map(pkg_of);
       if (b.package_order) graph.blocks[slug]!.package_order = b.package_order.map(pkg_of);

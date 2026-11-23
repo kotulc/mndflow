@@ -6,7 +6,8 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, join } from "node:path";
 import { parseDocument, stringify } from "yaml";
-import { attributes_of, BLOCK_KEYS, DIAGRAMS, fold, long_form, setting_of, type FileSpec } from "@mnd/core";
+import { attributes_of, BLOCK_KEYS, DIAGRAMS, fold, LEAST, long_form, setting_of,
+         type FileSpec } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
 
 /** The kinds `draw` writes: every diagram kind, and `overview`, a model's tree. */
@@ -14,15 +15,22 @@ export const DRAWN = [...DIAGRAMS, "overview"] as const;
 
 /** **The floor** (docs/diagrams/README.md *Sub diagrams*): a diagram holds at least this many
  *  steps, messages, states, rows or parts; below it its owner's chip says it. A default. */
-export const FLOOR_OF = 3;
+export const FLOOR_OF = LEAST;
+
+/** **The ceiling** (2026-11-21: paths readable in a presentation): past this many lines and
+ *  this many lines a part, both, a laid-out diagram is too dense to follow. A default. */
+export const DENSE = { lines: 8, per: 1.5 };
+
+/** The kinds laid out by their lines, where density tangles them. */
+const LAID = ["context", "flow", "dataflow", "state"];
 
 /** A diagram file written: its text, and what it is warned of. */
 export type Drawn = { text: string; warnings: string[] };
 
 
 /** **`draw <kind>`**: a selection — a diagram file's map, as JSON — written as that kind's YAML.
- *  Read back through the file syntax first, so what it writes always reads; warned below the
- *  floor, naming the owner whose chip would say it. */
+ *  Read back through the file syntax first, so what it writes always reads; refused without a
+ *  description or below the floor, naming the owner whose card would say it. */
 export function diagram_file(kind: string, selection: Record<string, unknown>): Drawn {
   if (!(DRAWN as readonly string[]).includes(kind)) {
     throw new Error(`no diagram kind ${kind}: ${DRAWN.join(", ")}`);
@@ -36,10 +44,30 @@ export function diagram_file(kind: string, selection: Record<string, unknown>): 
   }
   long_form(map, undefined, spec_of(type));
   const counted = count(kind, map);
-  const warnings = counted.n < FLOOR_OF ? [
-    `${map["name"] ?? "this diagram"} holds ${counted.n} ${counted.of}, below the floor of `
-    + `${FLOOR_OF}: ${selection["owner"] ? `${String(selection["owner"])}'s chip` : "its owner's chip"} `
-    + "would say it instead"] : [];
+  /** **A diagram earns its place** (the user, 2026-11-21: no useless diagrams): it says what
+   *  it answers, and holds at least the floor; below it, its owner's card says it instead. */
+  if (typeof map["description"] !== "string" || !map["description"].trim()) {
+    throw new Error(`${map["name"] ?? "this diagram"} says nothing of what it answers: give it a `
+      + "--description (one sentence: the question it answers for whoever reads the model)");
+  }
+  if (counted.n < FLOOR_OF) {
+    throw new Error(`${map["name"] ?? "this diagram"} holds ${counted.n} ${counted.of}, below the `
+      + `floor of ${FLOOR_OF}: not worth a diagram — say it in `
+      + `${selection["owner"] ? `${String(selection["owner"])}'s` : "its owner's"} description`);
+  }
+  const warnings: string[] = [];
+  const pieces = pieces_of(map);
+  if (["flow", "dataflow"].includes(kind) && pieces.length > 1) {
+    warnings.push(`${map["name"] ?? "this diagram"} draws ${pieces.length} separate chains, `
+      + `starting at ${pieces.map((p) => p[0]).join(", ")}: one story reads best; --keep one `
+      + "chain, or join them where the story does");
+  }
+  const lines = lines_in(map["relations"]);
+  if (LAID.includes(kind) && lines > DENSE.lines && lines > counted.n * DENSE.per) {
+    warnings.push(`${map["name"] ?? "this diagram"} draws ${lines} lines among ${counted.n} `
+      + `${counted.of}, too many to follow in a presentation: draw it at a coarser --depth, or `
+      + "--keep the parts one story needs, and draw the rest as a diagram of its own");
+  }
   const { owner: _owner, ...kept } = map;
   return { text: stringify(kept, { lineWidth: 0 }), warnings };
 }
@@ -101,7 +129,7 @@ function participants_in_order(map: Record<string, unknown>): unknown[] {
   }));
   const ends = (Array.isArray(map["relations"]) ? map["relations"] : []).flatMap((r) => {
     const text = typeof r === "string" ? r : Object.keys(r as object)[0] ?? "";
-    return text.split(":")[0]!.split(/\s*(?:<->|->|<-|--)\s*/).map((s) => s.trim());
+    return ends_of(text);
   });
   const first = (p: unknown) => {
     const at = ends.findIndex((s) => s === name(p) || steps.get(s) === name(p));
@@ -117,13 +145,49 @@ function spec_of(kind: string): FileSpec {
   return (setting_of(graph, kind, "diagram")["file"] ?? {}) as FileSpec;
 }
 
+/** **The pieces a diagram falls into**: its blocks joined by its lines, each piece listed from
+ *  its first block. A block no line meets is a piece of its own. */
+function pieces_of(map: Record<string, unknown>): string[][] {
+  const names = (Array.isArray(map["blocks"]) ? map["blocks"] : [])
+    .map((b) => (typeof b === "string" ? b : (b as { name?: string; type?: string })))
+    .filter((b) => typeof b === "string" || b.type !== "group")
+    .map((b) => (typeof b === "string" ? b : String(b.name)));
+  const up = new Map(names.map((n) => [n, n]));
+  const root = (n: string): string => (up.get(n) === n || !up.has(n) ? n : root(up.get(n)!));
+  /** A line is written plain, as a map keyed by itself, or listed under its type. */
+  const said = (r: unknown): string[] => (typeof r === "string" ? [r]
+    : Object.entries(r as object).flatMap(([k, v]) => (Array.isArray(v) ? v.map(String) : [k])));
+  for (const line of (Array.isArray(map["relations"]) ? map["relations"] : []).flatMap(said)) {
+    const [a, b] = ends_of(line);
+    if (a && b && up.has(a) && up.has(b)) up.set(root(a), root(b));
+  }
+  const by = new Map<string, string[]>();
+  for (const n of names) by.set(root(n), [...by.get(root(n)) ?? [], n]);
+  return [...by.values()];
+}
+
+/** A written line's two ends: `a -> b: what` gives `a`, `b`. */
+function ends_of(line: string): string[] {
+  return line.split(":")[0]!.split(/\s*(?:<->|->|<-|--)\s*/).map((s) => s.trim());
+}
+
+/** How many lines a selection's relations hold, plain or listed under a type. */
+export function lines_in(relations: unknown): number {
+  if (!Array.isArray(relations)) return 0;
+  return relations.reduce((n: number, r) => n + (typeof r === "string" ? 1
+    : Object.values(r as object).reduce((k: number, v) => k + (Array.isArray(v) ? v.length : 1), 0)), 0);
+}
+
 /** What a kind's floor counts in a selection: messages, rows, or blocks. */
 function count(kind: string, map: Record<string, unknown>): { n: number; of: string } {
   const list = (key: string) => (Array.isArray(map[key]) ? (map[key] as unknown[]).length : 0);
   if (kind === "sequence") return { n: list("relations"), of: "messages" };
   if (kind === "mapping") return { n: list("records"), of: "rows" };
   if (kind === "state") return { n: list("blocks"), of: "states" };
-  if (kind === "overview" || kind === "context") return { n: list("blocks"), of: "parts" };
+  /** A group is no part: it holds them. */
+  const parts = Array.isArray(map["blocks"]) ? (map["blocks"] as { type?: string }[])
+    .filter((b) => b?.type !== "group").length : 0;
+  if (kind === "overview" || kind === "context") return { n: parts, of: "parts" };
   return { n: list("blocks"), of: "steps" };
 }
 
@@ -216,6 +280,15 @@ function model_tour(r: Read, at: string): Record<string, unknown>[] {
   })];
 }
 
+/** What a package folder says its system is: its `package.json` root's description. */
+function system_of(folder: string): string {
+  const file = join(folder, "package.json");
+  if (!existsSync(file)) return "";
+  const pkg = JSON.parse(readFileSync(file, "utf8")) as
+    { graph?: { root?: string; blocks?: Record<string, { description?: string }> } };
+  return pkg.graph?.blocks?.[pkg.graph.root ?? ""]?.description?.trim() ?? "";
+}
+
 /** How many of a sub-model's lines from its actors the top tour steps through before leading
  *  into its own tour. */
 const LEADS = 3;
@@ -244,10 +317,15 @@ export function tour(folder: string, force = false): { file: string; text: strin
     return { title: n, at: n, show: n, summary: String(r.said["description"] ?? n),
              into: first, ...(steps.length ? { steps } : {}) };
   });
+  /** **The top tour opens on what the system is** (2026-11-22): the package's description. */
+  const system = system_of(folder);
   const drafted = models.map((r, i) => {
     const name = name_of(r);
     const kept = kept_of(r);
-    const stops = [...model_tour(r, focus(r)), ...(i === 0 ? leads : [])];
+    const [own, ...shown] = model_tour(r, focus(r));
+    const first = i === 0 && system ? { ...own!, summary: `${system} ${String(own!["summary"])}` }
+      : own!;
+    const stops = [first, ...shown, ...(i === 0 ? leads : [])];
     const tour = { name, description: String(r.said["description"] ?? `${name}, stop by stop.`),
                    stops };
     const has = kept.some((p) => p["name"] === name);

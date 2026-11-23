@@ -25,7 +25,7 @@
         "name": "elements",
         "counters": {
           "note": 9,
-          "block": 53,
+          "block": 63,
           "folder": 1,
           "grid": 1,
           "reference": 4,
@@ -34,8 +34,9 @@
           "label": 1,
           "group": 4,
           "region": 3,
-          "relation": 17
-        }
+          "relation": 29
+        },
+        "description": "Not a system: one of every element mndflow draws (blocks, notation, lines, colours, data), each laid out to check how it looks."
       },
       "workspace.class-record": {
         "id": "workspace.class-record",
@@ -951,6 +952,92 @@
             "type": "workspace.record"
           }
         ]
+      },
+      "yaml.7-crossings": {
+        "id": "yaml.7-crossings",
+        "parent": "workspace",
+        "name": "Crossings",
+        "type": "context",
+        "def": {},
+        "description": "Lines that must cross and lines that must run side by side. Every source here reaches every target, so no layout avoids a crossing; a crossing hops, never reads as a join. Hub's three lines leave one face in lanes.",
+        "order": 8,
+        "source": "7-crossings.yaml",
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "is_model"
+        ]
+      },
+      "yaml.7-crossings:hub": {
+        "id": "yaml.7-crossings:hub",
+        "parent": "yaml.7-crossings",
+        "name": "Hub",
+        "alias": 60,
+        "order": 7
+      },
+      "yaml.7-crossings:left": {
+        "id": "yaml.7-crossings:left",
+        "parent": "yaml.7-crossings",
+        "name": "Left",
+        "alias": 61,
+        "order": 8
+      },
+      "yaml.7-crossings:middle": {
+        "id": "yaml.7-crossings:middle",
+        "parent": "yaml.7-crossings",
+        "name": "Middle",
+        "alias": 62,
+        "order": 9
+      },
+      "yaml.7-crossings:right": {
+        "id": "yaml.7-crossings:right",
+        "parent": "yaml.7-crossings",
+        "name": "Right",
+        "alias": 63,
+        "order": 10
+      },
+      "yaml.7-crossings:source-one": {
+        "id": "yaml.7-crossings:source-one",
+        "parent": "yaml.7-crossings",
+        "name": "Source one",
+        "alias": 54,
+        "order": 1
+      },
+      "yaml.7-crossings:source-three": {
+        "id": "yaml.7-crossings:source-three",
+        "parent": "yaml.7-crossings",
+        "name": "Source three",
+        "alias": 56,
+        "order": 3
+      },
+      "yaml.7-crossings:source-two": {
+        "id": "yaml.7-crossings:source-two",
+        "parent": "yaml.7-crossings",
+        "name": "Source two",
+        "alias": 55,
+        "order": 2
+      },
+      "yaml.7-crossings:target-one": {
+        "id": "yaml.7-crossings:target-one",
+        "parent": "yaml.7-crossings",
+        "name": "Target one",
+        "alias": 57,
+        "order": 4
+      },
+      "yaml.7-crossings:target-three": {
+        "id": "yaml.7-crossings:target-three",
+        "parent": "yaml.7-crossings",
+        "name": "Target three",
+        "alias": 59,
+        "order": 6
+      },
+      "yaml.7-crossings:target-two": {
+        "id": "yaml.7-crossings:target-two",
+        "parent": "yaml.7-crossings",
+        "name": "Target two",
+        "alias": 58,
+        "order": 5
       }
     },
     "edges": {
@@ -1149,6 +1236,153 @@
           }
         },
         "to": "yaml.6-data.record-trace:store"
+      },
+      "yaml.7-crossings.r.hub-left": {
+        "id": "yaml.7-crossings.r.hub-left",
+        "name": "one",
+        "alias": 27,
+        "from": "yaml.7-crossings:hub",
+        "order": 9,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "yaml.7-crossings:left"
+      },
+      "yaml.7-crossings.r.hub-middle": {
+        "id": "yaml.7-crossings.r.hub-middle",
+        "name": "two",
+        "alias": 28,
+        "from": "yaml.7-crossings:hub",
+        "order": 10,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "yaml.7-crossings:middle"
+      },
+      "yaml.7-crossings.r.hub-right": {
+        "id": "yaml.7-crossings.r.hub-right",
+        "name": "three",
+        "alias": 29,
+        "from": "yaml.7-crossings:hub",
+        "order": 11,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "yaml.7-crossings:right"
+      },
+      "yaml.7-crossings.r.source-one-target-one": {
+        "id": "yaml.7-crossings.r.source-one-target-one",
+        "alias": 18,
+        "from": "yaml.7-crossings:source-one",
+        "order": 0,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "yaml.7-crossings:target-one"
+      },
+      "yaml.7-crossings.r.source-one-target-three": {
+        "id": "yaml.7-crossings.r.source-one-target-three",
+        "alias": 20,
+        "from": "yaml.7-crossings:source-one",
+        "order": 2,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "yaml.7-crossings:target-three"
+      },
+      "yaml.7-crossings.r.source-one-target-two": {
+        "id": "yaml.7-crossings.r.source-one-target-two",
+        "alias": 19,
+        "from": "yaml.7-crossings:source-one",
+        "order": 1,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "yaml.7-crossings:target-two"
+      },
+      "yaml.7-crossings.r.source-three-target-one": {
+        "id": "yaml.7-crossings.r.source-three-target-one",
+        "alias": 24,
+        "from": "yaml.7-crossings:source-three",
+        "order": 6,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "yaml.7-crossings:target-one"
+      },
+      "yaml.7-crossings.r.source-three-target-three": {
+        "id": "yaml.7-crossings.r.source-three-target-three",
+        "alias": 26,
+        "from": "yaml.7-crossings:source-three",
+        "order": 8,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "yaml.7-crossings:target-three"
+      },
+      "yaml.7-crossings.r.source-three-target-two": {
+        "id": "yaml.7-crossings.r.source-three-target-two",
+        "alias": 25,
+        "from": "yaml.7-crossings:source-three",
+        "order": 7,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "yaml.7-crossings:target-two"
+      },
+      "yaml.7-crossings.r.source-two-target-one": {
+        "id": "yaml.7-crossings.r.source-two-target-one",
+        "alias": 21,
+        "from": "yaml.7-crossings:source-two",
+        "order": 3,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "yaml.7-crossings:target-one"
+      },
+      "yaml.7-crossings.r.source-two-target-three": {
+        "id": "yaml.7-crossings.r.source-two-target-three",
+        "alias": 23,
+        "from": "yaml.7-crossings:source-two",
+        "order": 5,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "yaml.7-crossings:target-three"
+      },
+      "yaml.7-crossings.r.source-two-target-two": {
+        "id": "yaml.7-crossings.r.source-two-target-two",
+        "alias": 22,
+        "from": "yaml.7-crossings:source-two",
+        "order": 4,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "yaml.7-crossings:target-two"
       }
     }
   }

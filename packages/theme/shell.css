@@ -315,8 +315,9 @@ input:focus { outline: none; border-color: var(--accent); }
 .tray-context > .note { flex: none; color: var(--faint); font-size: 11px; font-style: italic; }
 
 /* **An element's identity row**: its colour edge, its name, its kind quieter after it, its role —
-   a filled *definition* badge in its colour, or a quiet *use* — then its facts strip, which takes
-   a line of its own in a narrow tray. */
+   a filled *definition* badge in its colour, or a quiet *use* — then its facts strip. **One line
+   in every tray** (2026-11-22): narrow, the facts give way at the right rather than wrapping, so
+   the tabs under it never move as the pick changes. */
 .tray { container-type: inline-size; }
 .tray-context { flex-wrap: wrap; row-gap: 2px; }
 .tray-context > .tray-edge {
@@ -339,7 +340,10 @@ input:focus { outline: none; border-color: var(--accent); }
 .tray-context > .role.use { border: 1px solid var(--border); color: var(--muted); }
 .tray-context > .tray-facts { display: inline-flex; min-width: 0; overflow: hidden; }
 @container (width < 520px) {
-  .tray-context > .tray-facts { flex-basis: 100%; padding-left: 11px; }
+  .tray-context { flex-wrap: nowrap; }
+  .tray-context > .tray-facts { flex: 1 1 0; }
+  /* Narrow, every tab still fits on its strip. */
+  .tray .tray-tabs > button { padding-inline: 4px; font-size: 11.5px; }
 }
 
 .tray-bar .holds {

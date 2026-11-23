@@ -7,7 +7,7 @@
 
 | Question | How the diagram answers |
 |---|---|
-| *how do the parts fit together?* | cards placed by layout: layered where lines join, packed where none do, banded by region |
+| *how do the parts fit together?* | cards placed by layout: layered where lines join, packed where none do, banded by region. **Inputs to outputs along the canvas** (the user, 2026-11-21): left to right on a landscape canvas, top to bottom on a portrait one; groups ranked with their cards as one hierarchy; pieces no line joins further apart than the cards of one |
 | *what flows where?* | lines with direction, drawn once at the level where they cross, several between a pair counted |
 | *what kind of picture is this?* | its view, picked by the block's kind: internal, allocation, sequence, class, entity, registry, treemap |
 

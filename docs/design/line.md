@@ -40,7 +40,10 @@
 
 ## Form
 
-- **routed round cards**, square, fewest bends. Lines sharing an anchor share a trunk
+- **routed round cards**, square, fewest crossings, then fewest bends (2026-11-21: a crossing costs a long way round)
+- **in lanes** (the user, 2026-11-21): lines running side by side, from one anchor too, are nudged a seat apart, so each reads as its own
+- **a crossing hops**: where a level leg crosses another line, it rises over it in a small half circle (views `route.ts` `HOP`), so a crossing never reads as a join
+- **named where it is alone**: a name sits by a leg its line has to itself, clear of other lines, never on a shared trunk (2026-11-21)
 - **drawn once**, at the level where it crosses
 - **nothing sits on the stroke**: names and end words sit beside it, so the line always reads unbroken. While hovered or picked, a line thickens and shows its end words at any length
 - **ties** are quieter: straight, no heads, no ends, above every card

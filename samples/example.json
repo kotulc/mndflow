@@ -772,6 +772,7 @@
           "grid": 1,
           "relation": 62
         },
+        "description": "An online shop, invented as mndflow's worked example: customers browse a catalogue, place orders and pay by card; the shop reserves stock, charges through a card processor and books parcels with a carrier. It shows how one system is modelled from every side.",
         "library": {
           "types": [
             {

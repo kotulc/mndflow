@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { appearances_of, collect, drop_of, touches_of,
          held_at, in_section, is_inside, is_layer_view, lit as lit_by,
-         object_of, path, path_of, path_owner, presentations_of, registry_at, used_model,
+         object_of, path, path_of, path_owner, registry_at, used_model,
          registry_id, registry_of,
          seen_through, session, shown_name, trace, way_of, DIAGRAM_VIEWS, EDITOR, type Boot, type ViewKind, type Storage, type Dir,
          type Hop, type Id, type Toggled, is_shown } from "@mnd/core";
@@ -18,7 +18,7 @@ import { Icon, useZone, WorkspaceHeader } from "@mnd/theme";
 import { BAND as CANVAS_BAND, Stage, still, type Move, type Shot } from "@mnd/stage";
 import { Tray, useDisplay, useTray, type Offered } from "@mnd/tray";
 import { shot_of, type Camera } from "./camera";
-import { fit_of, showing_of, step_of, usePresent } from "./present";
+import { current_of, fit_of, showing_of, step_of, usePresent } from "./present";
 import { browser_files, browser_net } from "./ports";
 
 /** The three looks, each with the mark it wears. */
@@ -409,16 +409,17 @@ export function App({ storage, boot, opening }: {
 
   /** **Playing from a ▶** (2026-11-21): on the open model, its presentation starts, the tray on
    *  its overview; on a chip, the chip is entered first and plays once it is the open layer. */
-  const [queued, set_queued] = useState<{ id: Id; at: number } | null>(null);
-  const play_from = (at: number, on?: string) => {
+  const [queued, set_queued] = useState<{ id: Id; at: number; stop: number } | null>(null);
+  const play_from = (at: number, on?: string, stop = 0) => {
     const target = on && graph.blocks[on] && on !== view.layer ? on : null;
-    if (!target) { present.start(at); t.onTab("overview"); return; }
-    set_queued({ id: target, at });
+    if (!target) { present.start(at, stop); t.onOpen(true); t.onTab("overview"); return; }
+    set_queued({ id: target, at, stop });
     enter(target);
   };
   useEffect(() => {
     if (!queued || entering || view.layer !== queued.id) return;
-    present.start(queued.at);
+    present.start(queued.at, queued.stop);
+    t.onOpen(true);
     t.onTab("overview");
     set_queued(null);
   }, [queued, entering, view.layer]);
@@ -479,6 +480,13 @@ export function App({ storage, boot, opening }: {
         ? s.picked()[0] ?? null : null);
     }
   };
+
+  /** **In development, actions reachable from the page** (`window.mnd`): a script drives the app
+   *  to each diagram to look at it, as a user would by double-click. */
+  useEffect(() => {
+    if (import.meta.env.DEV) Object.assign(window, { mnd: { act, graph: () => s.graph(),
+      pick: (ids: Id[]) => s.pick(ids), play: play_from, open: t.onOpen } });
+  });
 
   /** One gesture, one step: every write an adjustment comes to. */
   const adjust = (moves: readonly Move[]) => s.batch(() => {
@@ -730,21 +738,6 @@ export function App({ storage, boot, opening }: {
           showing={showing}
           onToggle={toggle}
           onPlay={play_from}
-          playing={present.play && present.presentation && present.stop ? {
-            name: present.presentation.name, title: present.stop.title,
-            caption: (present.stop.steps ?? [])[Math.min(present.play.shown,
-              present.stop.steps?.length ?? 0) - 1]?.text ?? present.stop.summary,
-            stop: present.play.stop, stops: present.presentation.stops.length,
-            paused: present.paused, pace: present.pace, first: present.play.stop === 0,
-            last: present.play.stop === present.presentation.stops.length - 1
-              && present.play.shown >= (present.stop.steps?.length ?? 0)
-              && !present.play.stack.length,
-            into: !!present.stop.into, out: present.play.stack.length > 0,
-            dive: present.play.dive ? shown_name(graph, present.play.dive) : null,
-            onToggle: present.toggle, onPrev: present.prev, onNext: present.next,
-            onStop: present.stop_playing, onInto: present.into, onOut: present.out,
-            onResume: present.resume, onPace: present.set_pace,
-          } : null}
           cells={s.cells()}
           onPickCells={(cells) => {
             /** A click lets go of what the canvas cannot show. */
@@ -793,7 +786,7 @@ export function App({ storage, boot, opening }: {
           {...(t.tab ? { tab: t.tab } : {})}
           onTab={t.onTab}
           /** **One object**: a plain stand-in picked is its block, described and edited as one. */
-          picked={present.play ? []
+          picked={present.play ? [current_of(graph, present)].filter((x): x is Id => !!x)
             : s.picked().map((id) => (graph.blocks[id]?.settings ? id : object_of(graph, id)))}
           onHover={set_hovered}
           onLit={set_listed}
@@ -808,15 +801,19 @@ export function App({ storage, boot, opening }: {
             stops: present.presentation.stops.map((x) => x.title),
             title: present.stop.title, summary: present.stop.summary,
             steps: (present.stop.steps ?? []).map((x) => x.text), shown: present.play.shown,
-            pace: present.pace, into: !!present.stop.into, out: present.play.stack.length > 0,
+            paused: present.paused, pace: present.pace, first: present.play.stop === 0,
+            last: present.play.stop === present.presentation.stops.length - 1
+              && present.play.shown >= (present.stop.steps?.length ?? 0)
+              && !present.play.stack.length,
+            into: !!present.stop.into, out: present.play.stack.length > 0,
             dive: present.play.dive ? shown_name(graph, present.play.dive) : null,
-            onNext: present.next, onPrev: present.prev, onGo: present.go,
-            onReplay: present.replay, onInto: present.into, onOut: present.out,
+            onToggle: present.toggle, onNext: present.next, onPrev: present.prev,
+            onGo: present.go, onInto: present.into, onOut: present.out,
             onResume: present.resume, onStop: present.stop_playing, onPace: present.set_pace,
-          } : model && view.layer ? {
-            name: null, offered: presentations_of(graph, model).map((x) => x.name),
-            onStart: (at: number) => play_from(at),
-          } : null}
+          } : {
+            name: null,
+            onStart: (home: Id, at: number, stop: number) => play_from(at, home, stop),
+          }}
         />
       </main>
     </div>

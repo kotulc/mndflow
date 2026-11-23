@@ -37,6 +37,8 @@ Reconciled with the tools 2026-11-13: one kind per diagram tool, kinds without a
 |---|---|
 | **the floor** | a diagram holds at least 3 steps, messages or states (a default, a floor); below it, it is not drawn and its owner's chip says it |
 | **a cut** | an overflow cut (sub flow, sub sequence, composite state) is made only where the part cut out and the part left each keep the floor |
-| **the tools** | a diagram tool warns when asked to draw below the floor, and names the owner whose chip would say it |
+| **the tools** | `draw` **refuses** below the floor and names the owner whose description would say it (2026-11-21: was a warning) |
+| **a reason** | every diagram says what it answers: `draw` refuses one without a description (the user, 2026-11-21) |
+| **entering** | a block enters only where its inside holds the floor (core `worth_entering`): a class with one method is a block; a module part holding four classes enters, in the library too (the user, 2026-11-21) |
 
 **Pass order**: layer kinds first (context, flow, dataflow, state), then grid (sequence, swimlane), mapping (records table), types (class, entity), treemap (tree). The tree kind is the overview (model-plan.md decisions 10 and 18), which the `overview` tool writes.

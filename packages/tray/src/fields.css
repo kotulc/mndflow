@@ -85,6 +85,27 @@
   font: inherit;
 }
 
+/* A row's words that wrap: the same ground, as tall as its words (2026-11-22). */
+.rows > .row > .line > textarea {
+  flex: 1 1 0;
+  min-width: 0;
+  box-sizing: border-box;
+  min-height: 22px;
+  padding: 3px 6px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  background: var(--band);
+  color: inherit;
+  font: inherit;
+  line-height: 1.45;
+  resize: none;
+  field-sizing: content;
+}
+/* Its label stands at its first line. */
+.rows > .row:has(> .line > textarea) { align-items: start; }
+.rows > .row:has(> .line > textarea) > label { padding-top: 4px; }
+.rows > .row > .line > textarea:hover { border-color: var(--divider); }
+.rows > .row > .line > textarea:focus { outline: none; border-color: var(--accent); }
 .rows > .row > .line > select:hover,
 .rows > .row > .line > input:hover { border-color: var(--divider); }
 .rows > .row > .line > select:focus,

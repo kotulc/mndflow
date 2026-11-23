@@ -3,6 +3,7 @@
  *  `onAct` the workspace itself is read only; its display still answers `onDisplay`, since how a
  *  drawing looks is the session's and changes nothing. */
 
+import type { ReactNode } from "react";
 import { all_defs, def_at, file_name, package_of, packages, SCHEMA, shown_name,
          type Act, type Graph, type Id } from "@mnd/core";
 import { Band, Body, Check, Line, NOOP, Pick } from "./Body";
@@ -35,7 +36,11 @@ const CORNERS = [{ value: "top", word: "top" }, { value: "bottom", word: "bottom
 /** **A scope's answers** — the workspace's or a package's — in the overview's sections: why it
  *  matters, its name and what it is for, editable on the workspace; how it is made, in counts;
  *  the workspace's file. Given no `onAct`, read only. */
-export function ScopeAnswers({ graph, id, onAct = NOOP }: { graph: Graph; id: Id; onAct?: Act }) {
+export function ScopeAnswers({ graph, id, onAct = NOOP, deck = null }: {
+  graph: Graph; id: Id; onAct?: Act;
+  /** What follows its description: the overview's presentations. */
+  deck?: ReactNode;
+}) {
   const b = graph.blocks[id];
   if (!b) return null;
   const whole = id === graph.root;
@@ -45,7 +50,7 @@ export function ScopeAnswers({ graph, id, onAct = NOOP }: { graph: Graph; id: Id
   const defs = all_defs(graph).filter((d) => within(d.id)).length;
   return (
     <>
-      <Section name="why it matters" about="What it is for, in its own words">
+      <Section name="description" about="What it is for, in its own words">
         {readonly ? (
           <>
             {b.description ? <p className="why">{b.description}</p> : <Empty>no description yet</Empty>}
@@ -65,7 +70,7 @@ export function ScopeAnswers({ graph, id, onAct = NOOP }: { graph: Graph; id: Id
               </Line>
               <Line label="about" tip="What this workspace is for, in a line.">
                 <Entry key={`${id}:about`} value={b.description ?? ""} label="about"
-                       blank placeholder="what it is for"
+                       blank wrap placeholder="what it is, what it does and for whom"
                        onCommit={(to) => onAct("describe", { id, description: to })} />
               </Line>
               <Line label="tags" tip="Tags that say what this is like. A new word makes a tag.">
@@ -76,6 +81,7 @@ export function ScopeAnswers({ graph, id, onAct = NOOP }: { graph: Graph; id: Id
           </fieldset>
         )}
       </Section>
+      {deck}
       <Section name="how it is made" about="What it holds, counted">
         <div className="stat">
           {blocks ? <span><b>{blocks}</b> blocks</span> : null}

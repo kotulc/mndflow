@@ -12,7 +12,7 @@ import { box_of, extent, lines_drawn, nearest_seat, routes_of, taken_on, ACROSS,
 import { NamingContext } from "@mnd/theme";
 import { CellsContext, DRAGGED, NODE_TYPES } from "./nodes";
 import { PickedContext, picked_by } from "./picked";
-import { CardsContext, EDGE_TYPES, Heads, NamesContext, RunsContext } from "./Wire";
+import { CardsContext, EDGE_TYPES, Heads, HopsContext, NamesContext, RunsContext } from "./Wire";
 import type { Adjust, FlowViewProps, Gesture, Landing } from "./gestures";
 import { BAND, MIN_ZOOM } from "./arrays";
 import { useDrag } from "./drag";
@@ -177,7 +177,9 @@ function Canvas(props: FlowViewProps) {
    *  A line to what is across the frame runs out of it by design, and never grows it. */
   const held = useMemo(() => {
     const at = nodes.findIndex((n) => n.id === FRAME);
-    const walled = scene.edges.some((e) => e.source === FRAME || e.target === FRAME);
+    /** A line ending on the frame or one of its own ports pins the walls where they are. */
+    const wall = new Set([FRAME, ...(scene.frame?.ports ?? []).map((p) => p.id)]);
+    const walled = scene.edges.some((e) => wall.has(e.source) || wall.has(e.target));
     if (at < 0 || walled || !runs.size) return nodes;
     const b = box_of(nodes[at]!);
     const pts = [...runs].filter(([id]) => !id.startsWith(ACROSS)).flatMap(([, run]) => run);
@@ -195,8 +197,12 @@ function Canvas(props: FlowViewProps) {
 
   /** **Every line's name placed together**, in order, each clear of the cards and the names
    *  before it (views `lines_drawn`), so no two names cover each other. */
-  const names = useMemo(() => new Map(lines_drawn({ ...scene, nodes: held }, runs, cards)
-    .flatMap((l) => (l.name ? [[l.id, l.name] as const] : []))), [scene, held, runs, cards]);
+  const drawn = useMemo(() => lines_drawn({ ...scene, nodes: held }, runs, cards),
+                        [scene, held, runs, cards]);
+  const names = useMemo(() => new Map(drawn.flatMap((l) => (l.name ? [[l.id, l.name] as const]
+    : []))), [drawn]);
+  /** Where each line hops the lines it crosses, from the same geometry. */
+  const hops = useMemo(() => new Map(drawn.map((l) => [l.id, l.hops] as const)), [drawn]);
 
   /** What lights as picked: the host's pick, read by every node and line. */
   const lit = useMemo(() => picked_by(picked, props.stands_for), [picked, props.stands_for]);
@@ -206,6 +212,7 @@ function Canvas(props: FlowViewProps) {
     <RunsContext.Provider value={runs}>
     <CardsContext.Provider value={cards}>
     <NamesContext.Provider value={names}>
+    <HopsContext.Provider value={hops}>
     <ReactFlow
       className={["mnd-flow", framed ? "" : "frameless", scene.areas ? "map" : "",
                   cut ? "cut" : "", cut || fresh ? "fresh" : ""].filter(Boolean).join(" ")}
@@ -360,6 +367,7 @@ function Canvas(props: FlowViewProps) {
       ) : null}
       {chrome && !scroll ? <Controls showInteractive={false} fitViewOptions={fit} /> : null}
     </ReactFlow>
+    </HopsContext.Provider>
     </NamesContext.Provider>
     </CardsContext.Provider>
     </RunsContext.Provider>

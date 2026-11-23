@@ -150,20 +150,40 @@ function tidy(run: Point[]): Point[] {
   return out;
 }
 
-/** The run as a path, with its corners rounded. */
-export function drawn(run: readonly Point[], bend: number): string {
+/** How far a hop rises over the line it crosses. */
+export const HOP = 8;
+
+/** **The run as a path**, its corners rounded, and **a hop at each of `hops`** (2026-11-21: a
+ *  crossing never reads as a join): a half circle over the line crossed, on a level leg. */
+export function drawn(run: readonly Point[], bend: number, hops: readonly Point[] = []): string {
   if (run.length < 2) return "";
-  let d = `M${run[0]!.x},${run[0]!.y}`;
+  let at = run[0]!;
+  let d = `M${at.x},${at.y}`;
+  /** A straight stretch to `to`, hopping where a hop lies on it. */
+  const line = (to: Point) => {
+    if (at.y === to.y) {
+      const way = Math.sign(to.x - at.x);
+      for (const h of hops.filter((h) => h.y === at.y && (h.x - at.x) * way > HOP
+                                    && (to.x - h.x) * way > HOP)
+                          .sort((a, z) => (a.x - z.x) * way)) {
+        d += ` L${h.x - HOP * way},${h.y} A${HOP},${HOP} 0 0 ${way > 0 ? 1 : 0} ${h.x + HOP * way},${h.y}`;
+      }
+    }
+    d += ` L${to.x},${to.y}`;
+    at = to;
+  };
   for (let i = 1; i < run.length - 1; i++) {
     const p = run[i - 1]!;
     const c = run[i]!;
     const n = run[i + 1]!;
     const r = Math.min(bend, len(p, c) / 2, len(c, n) / 2);
-    d += ` L${toward(c, p, r).x},${toward(c, p, r).y}`;
-    d += ` Q${c.x},${c.y} ${toward(c, n, r).x},${toward(c, n, r).y}`;
+    line(toward(c, p, r));
+    const to = toward(c, n, r);
+    d += ` Q${c.x},${c.y} ${to.x},${to.y}`;
+    at = to;
   }
-  const end = run[run.length - 1]!;
-  return `${d} L${end.x},${end.y}`;
+  line(run[run.length - 1]!);
+  return d;
 }
 
 const len = (a: Point, b: Point) => Math.hypot(b.x - a.x, b.y - a.y);
@@ -205,12 +225,19 @@ export type NameBox = { x: number; y: number; w: number; h: number;
  *  (`cards`); where none is, above or right of the longest. The one geometry the stage draws by
  *  and the measure counts. */
 export function name_box(run: readonly Point[], chars: number, fan?: Fan, level = false,
-                         cards: readonly { x: number; y: number; w: number; h: number }[] = [])
-    : NameBox {
+                         cards: readonly { x: number; y: number; w: number; h: number }[] = [],
+                         others: readonly (readonly Point[])[] = []): NameBox {
   const own = fan ? past(fan.end === "to" ? [...run].reverse() : run, fan.by) : run;
   const [w, h] = [chars * NAMED.glyph, NAMED.line];
+  /** **A name sits by a leg its line has alone** (2026-11-21: a trunk several lines share
+   *  names none of them), the longest first. */
+  const shared = (p: Point, q: Point) => {
+    const m = { x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 };
+    return others.some((o) => o.slice(1).some((b, i) => on_leg(m, o[i]!, b)));
+  };
   const legs = own.slice(1).map((q, i) => [own[i]!, q] as const)
-    .sort((a, z) => len(z[0], z[1]) - len(a[0], a[1]));
+    .sort((a, z) => Number(shared(...a)) - Number(shared(...z))
+      || len(z[0], z[1]) - len(a[0], a[1]));
   const boxes = (legs.length ? legs : [[own[0]!, own[0]!] as const]).flatMap(([p, q]): NameBox[] => {
     const at = { x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 };
     const flat = p.y === q.y || level;
@@ -220,9 +247,22 @@ export function name_box(run: readonly Point[], chars: number, fan?: Fan, level 
       : [{ x: at.x + NAMED.aside, y: at.y - h / 2, w, h, side: "right" as const, at },
          { x: at.x - NAMED.aside - w, y: at.y - h / 2, w, h, side: "left" as const, at }];
   });
-  const clear = (b: NameBox) => cards.every((c) => b.x >= c.x + c.w || c.x >= b.x + b.w
-    || b.y >= c.y + c.h || c.y >= b.y + b.h);
-  return boxes.find(clear) ?? boxes[0]!;
+  const apart = (b: NameBox, c: { x: number; y: number; w: number; h: number }) =>
+    b.x >= c.x + c.w || c.x >= b.x + b.w || b.y >= c.y + c.h || c.y >= b.y + b.h;
+  /** Clear of every card, and of every other line's legs where it can be. */
+  const clear = (b: NameBox) => cards.every((c) => apart(b, c));
+  const alone = (b: NameBox) => others.every((o) => o.slice(1).every((q, i) =>
+    apart(b, { x: Math.min(o[i]!.x, q.x), y: Math.min(o[i]!.y, q.y),
+               w: Math.abs(q.x - o[i]!.x), h: Math.abs(q.y - o[i]!.y) })));
+  return boxes.find((b) => clear(b) && alone(b)) ?? boxes.find(clear) ?? boxes[0]!;
+}
+
+/** Whether a point lies on a square leg. */
+function on_leg(m: Point, p: Point, q: Point): boolean {
+  return (Math.abs(p.x - q.x) < 1 && Math.abs(m.x - p.x) < 1
+          && m.y >= Math.min(p.y, q.y) && m.y <= Math.max(p.y, q.y))
+    || (Math.abs(p.y - q.y) < 1 && Math.abs(m.y - p.y) < 1
+        && m.x >= Math.min(p.x, q.x) && m.x <= Math.max(p.x, q.x));
 }
 
 /** What is left of a run after its first `by` of length. */

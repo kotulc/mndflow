@@ -17,7 +17,6 @@ import type { Trace } from "@mnd/views";
 import { Crumbs } from "./Crumbs";
 import { Hover } from "./Hover";
 import { path_rules, usePath } from "./path";
-import { Player, type Playing } from "./Player";
 import { Walk, type Walking } from "./Walk";
 import type { Shot } from "./room";
 
@@ -29,8 +28,6 @@ export type StageProps = {
   picked: readonly string[];
   /** A path offered or walked from the block picked: one hop lit a step. */
   walk?: Walking | null;
-  /** A presentation playing: its player over the canvas's foot. */
-  playing?: Playing | null;
   onAct: Act;
   /** The writes one canvas adjustment comes to, for the host to run as one step. */
   onAdjust?: (moves: readonly Move[]) => void;
@@ -215,7 +212,7 @@ function list_for(g: Gesture, scene: Scene, graph: Graph,
 export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, onPickCells, onDrop,
                        menu, said, onSaid, head, empty, lattice, frame, legend, corner, module,
                        dir, type, lit = [], touched = [], shot, onLand, entered = false,
-                       keys = true, editable = true, walk = null, playing = null, onClear, showing = null,
+                       keys = true, editable = true, walk = null, onClear, showing = null,
                        onToggle, onPlay }: StageProps) {
   /** What a right drag or a chain draws, as the rail set it. */
   const drawing = { ...(module ? { module } : {}), dir: dir ?? "none",
@@ -468,7 +465,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
   return (
     <section className={path || showing?.keep.length ? "stage pathing" : "stage"} ref={host}>
       <Crumbs trail={scene.trail} head={head ?? null} onAct={onAct} />
-      {playing ? <Player p={playing} /> : walk && !walk.outside ? <Walk walk={walk} /> : null}
+      {walk && !walk.outside ? <Walk walk={walk} /> : null}
       {empty ? <p className="empty">{empty}</p> : null}
       {/* **A map lights only what is picked**: a chip, a box or a tile. A layer also lights what
           is hovered, other appearances and what the selection touches. */}

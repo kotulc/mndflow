@@ -1,7 +1,8 @@
-/** **What a person sees as broken, counted**: over a scene and its routed
- *  runs, the lines through cards they do not end on, the names over cards or each other, the runs
- *  two lines share, and the gaps too narrow for the lines they carry. Pure; drawn as the stage
- *  draws it — libavoid's run where there is one, else `route`'s — names placed by `name_box`. */
+/** **What a person sees as broken, counted**: over a scene and its routed runs, the lines
+ *  crossing each other, the lines through cards they do not end on, the names over cards, lines
+ *  or each other, the runs two lines share, and the gaps too narrow for the lines they carry.
+ *  Pure; drawn as the stage draws it — libavoid's run where there is one, else `route`'s —
+ *  names placed by `name_box`. */
 
 import type { Id } from "@mnd/core";
 import { ACROSS } from "./across";
@@ -13,8 +14,8 @@ type Point = { x: number; y: number };
 type Rect = { x: number; y: number; w: number; h: number };
 
 /** The counts, and what each found, for reading one out. */
-export type Measure = { crossings: number; covered: number; shared: number; tight: number;
-                        wrong: number; loose: number; lines: number; found: string[] };
+export type Measure = { crossings: number; through: number; covered: number; shared: number;
+                        tight: number; wrong: number; loose: number; lines: number; found: string[] };
 
 /** What a line goes round and a name must not cover: cards and notes, never a holder. */
 const SOLID = new Set(["card", "note"]);
@@ -33,27 +34,42 @@ export function measure(scene: Scene, routes: ReadonlyMap<Id, readonly Point[]>)
   const found: string[] = [];
   const said = (n: Id) => cards.find((c) => c.id === n)?.label ?? n;
 
-  /** A leg through a card it does not end on. */
+  /** **Two lines crossing** (2026-11-21: paths read in a presentation): legs of different
+   *  lines meeting square, away from either's ends. */
   let crossings = 0;
+  runs.forEach((a, i) => {
+    for (const b of runs.slice(i + 1)) {
+      const n = legs(a.run).reduce((k, [p, q]) =>
+        k + legs(b.run).filter(([s, t]) => cross(p, q, s, t)).length, 0);
+      if (!n) continue;
+      crossings += n;
+      found.push(`crosses   ${a.label || a.id} with ${b.label || b.id}${n > 1 ? ` ×${n}` : ""}`);
+    }
+  });
+
+  /** A leg through a card it does not end on. */
+  let over = 0;
   for (const r of runs) {
     for (const c of cards) {
       if (c.id === r.from || c.id === r.to) continue;
       if (legs(r.run).some(([p, q]) => through(p, q, shrunk(c.box, INSIDE)))) {
-        crossings++;
-        found.push(`crosses   ${r.label || r.id} over ${c.label}`);
+        over++;
+        found.push(`through   ${r.label || r.id} over ${c.label}`);
       }
     }
   }
 
-  /** A name over a card, or over another name. */
+  /** A name over a card, another name, or another line. */
   const names = runs.filter((r) => r.name).map((r) => ({ r, box: r.name! }));
   let covered = 0;
   names.forEach(({ r, box }, i) => {
     const card = cards.find((c) => overlaps(box, c.box));
     const other = names.slice(i + 1).find((o) => overlaps(box, o.box));
-    if (card || other) {
+    const line = runs.find((o) => o !== r && legs(o.run).some(([p, q]) => through(p, q, box)));
+    if (card || other || line) {
       covered++;
-      found.push(`covers    ${r.label} over ${card ? card.label : other!.r.label}`);
+      found.push(`covers    ${r.label} over ${card ? card.label : other ? other.r.label
+        : `the line ${line!.label || line!.id}`}`);
     }
   });
 
@@ -114,7 +130,8 @@ export function measure(scene: Scene, routes: ReadonlyMap<Id, readonly Point[]>)
     found.push(`loose     ${n.data.label} across the frame, no line reaches it`);
   }
 
-  return { crossings, covered, shared, tight, wrong, loose, lines: runs.length, found };
+  return { crossings, through: over, covered, shared, tight, wrong, loose,
+           lines: runs.length, found };
 }
 
 /** The gap between two cards facing each other across it: its box, how wide, and whether the
@@ -187,6 +204,17 @@ function through(p: Point, q: Point, b: Rect): boolean {
   const [x0, x1] = [Math.min(p.x, q.x), Math.max(p.x, q.x)];
   const [y0, y1] = [Math.min(p.y, q.y), Math.max(p.y, q.y)];
   return x1 > b.x && x0 < b.x + b.w && y1 > b.y && y0 < b.y + b.h;
+}
+
+/** Whether a level leg and an upright one cross inside both, clear of their ends. */
+function cross(p: Point, q: Point, s: Point, t: Point): boolean {
+  const [h, v] = p.y === q.y && s.x === t.x ? [[p, q], [s, t]]
+    : p.x === q.x && s.y === t.y ? [[s, t], [p, q]] : [null, null];
+  if (!h || !v) return false;
+  const [x0, x1] = [Math.min(h[0]!.x, h[1]!.x), Math.max(h[0]!.x, h[1]!.x)];
+  const [y0, y1] = [Math.min(v[0]!.y, v[1]!.y), Math.max(v[0]!.y, v[1]!.y)];
+  const [x, y] = [v[0]!.x, h[0]!.y];
+  return x > x0 + 1 && x < x1 - 1 && y > y0 + 1 && y < y1 - 1;
 }
 
 /** Whether two square legs lie on one run for longer than `ALONG`. */

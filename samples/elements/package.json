@@ -4,7 +4,7 @@
   "graph": {
     "root": "elements",
     "blocks": {
-      "elements": { "id": "elements", "parent": null, "name": "elements" }
+      "elements": { "id": "elements", "parent": null, "name": "elements", "description": "Not a system: one of every element mndflow draws (blocks, notation, lines, colours, data), each laid out to check how it looks." }
     }
   }
 }

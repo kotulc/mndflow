@@ -7,6 +7,10 @@ import { EDITOR, first_model, fold, frozen, in_section, is_model, leave_at, lens
          read_at, role_of, session, stamps_of, ROOT, type View } from "../src/index";
 
 const g = fold(modeled(), FLOOR);
+
+/** The same, its `pattern` holding the floor of parts (`LEAST`), so worth a drawing. */
+const held = { ...g, blocks: { ...g.blocks, ...Object.fromEntries(["a", "b"].map((k) => [
+  `pattern_${k}`, { ...g.blocks["pattern_part"]!, id: `pattern_${k}` }])) } };
 const [LIBRARY, MODELS] = [0, 1];
 const map = (at: number, pick: string | null = null): View =>
   ({ at, kind: "map", layer: null, pick });
@@ -58,8 +62,9 @@ describe("the two sections", () => {
 });
 
 describe("what a subject opens on", () => {
-  it("is, in the library, a definition's drawing where it holds parts, else nothing", () => {
-    expect(lens_of(g, "pattern", "domain")).toBe("internal");
+  it("is, in the library, a definition's drawing where it holds the floor of parts, else nothing", () => {
+    expect(lens_of(held, "pattern", "domain")).toBe("internal");
+    expect(lens_of(g, "pattern", "domain")).toBeNull();
     expect(lens_of(g, "unused", "domain")).toBeNull();
   });
 
@@ -73,9 +78,9 @@ describe("what a subject opens on", () => {
 describe("reading", () => {
   const read = (id: string, now: View, options = {}) => read_at(g, EDITOR, {}, now, id, options);
 
-  it("enters a definition holding parts on its drawing, and stays in the library", () => {
-    expect(read("pattern", map(LIBRARY))).toMatchObject({ at: LIBRARY, kind: "internal",
-                                                          layer: "pattern" });
+  it("enters a definition holding the floor of parts on its drawing, and stays in the library", () => {
+    expect(read_at(held, EDITOR, {}, map(LIBRARY), "pattern", {}))
+      .toMatchObject({ at: LIBRARY, kind: "internal", layer: "pattern" });
   });
 
   it("enters nothing for an unused definition or a definition's part, and a package as a folder", () => {

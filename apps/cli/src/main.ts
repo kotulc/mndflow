@@ -13,7 +13,7 @@ import { draw, draw_svg, faults, outline, project } from "@mnd/views";
 import { measured, scaled } from "./measure";
 import { define, inline_home, kept_units, write_defined } from "./define";
 import { python_fact, is_python } from "./python";
-import { diagram_file, draft, presentations, tour } from "./tools";
+import { diagram_file, draft, lines_in, presentations, tour } from "./tools";
 import { held_in, is_facts, outside_of, selection_from } from "./from_facts";
 import { node_net } from "./ports";
 import { as_file, from_sysml, shape_of, to_sysml } from "./sysml";
@@ -25,7 +25,7 @@ const USAGE = `mnd — the headless harness
   mnd project <source> [layer] --svg  project a layer and draw it as SVG
   mnd outline <source> [layer]         list what a projection holds
   mnd measure <source> [layer]         lay out and route each diagram as the app does; count
-                                       lines over cards, covered names, shared runs, tight gaps;
+                                       lines crossing, lines over cards, covered names, shared runs, tight gaps;
                                        --views: the scale check of every tree view
   mnd check <source | folder>          run the door, print faults; a folder is collected first
   mnd review <source> [layer]          ask what the definitions wanted
@@ -512,12 +512,11 @@ async function tool(verb: string, first: string, rest: string[]): Promise<void> 
       writeFileSync(out, drawn.text);
       // What was written, counted, so a run says it worked
       const map = parse(drawn.text) as Record<string, unknown[] | undefined>;
-      // A typed group of lines (`- dependency: [...]`) counts its lines
-      const n = (k: string) => (map[k] ?? []).reduce((sum: number, x) => sum + (x && typeof x === "object"
-        && !Array.isArray(x) ? Object.values(x).reduce((a: number, v) => a + (Array.isArray(v) ? v.length : 1), 0)
-        : 1), 0);
-      console.log(`wrote ${out}: ${first}, ${(map["participants"] ?? []).length + (map["blocks"] ?? []).length} parts, `
-        + `${n("relations") + n("records")} lines`);
+      /** A group holds parts and is none; a typed group of lines counts its lines. */
+      const parts = [...(map["participants"] ?? []), ...(map["blocks"] ?? [])]
+        .filter((b) => (b as { type?: string })?.type !== "group").length;
+      console.log(`wrote ${out}: ${first}, ${parts} parts, `
+        + `${lines_in(map["relations"]) + lines_in(map["records"])} lines`);
       // Written into a source folder, it is checked there at once: what it says, said now
       const notes = in_source(out) ? model_notes(out) : [];
       for (const note of notes) console.error(`  ${note}`);

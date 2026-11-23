@@ -80,7 +80,7 @@ async function placed_ahead(graph: Graph, id: Id, kind: ViewKind, lists?: Lists)
   }
   if (kind === "class" || kind === "er") {
     const drawn = class_graph(graph, id, kind);
-    return drawn ? { spots: new Map([[id, (await place(drawn, id)).spots]]) } : null;
+    return drawn ? { spots: new Map([[id, (await place(drawn, id, true)).spots]]) } : null;
   }
   return null;
 }

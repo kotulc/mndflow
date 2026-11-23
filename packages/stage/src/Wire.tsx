@@ -69,6 +69,10 @@ export const CardsContext = createContext<readonly { x: number; y: number; w: nu
 /** Every line's name box, placed together so none covers another (views `lines_drawn`). */
 export const NamesContext = createContext<ReadonlyMap<string, NameBox>>(new Map());
 
+/** Where each line hops the lines it crosses (views `lines_drawn`). */
+export const HopsContext = createContext<ReadonlyMap<string, readonly { x: number; y: number }[]>>(
+  new Map());
+
 /** Where a name's box is set from, by the side of its leg it sits on. */
 const BESIDE: Record<NameBox["side"], (b: NameBox) => string> = {
   above: (b) => `translate(${b.at.x}px, ${b.at.y - NAMED.lift}px) translate(-50%, -50%)`,
@@ -117,6 +121,7 @@ export function Wire(props: EdgeProps<LineEdge>) {
   const runs = useContext(RunsContext);
   const cards = useContext(CardsContext);
   const names = useContext(NamesContext);
+  const hops = useContext(HopsContext);
   /** A wall's handle faces into the room; the end a line from outside meets faces out
    *  (views `LineData.outer`). */
   const facing = (way: "from" | "to", at: Position) => (data?.outer === way ? TURNED[at] : at);
@@ -134,7 +139,8 @@ export function Wire(props: EdgeProps<LineEdge>) {
                       { x: targetX, y: targetY }, facing("to", targetPosition),
                       data?.fan, data?.module === "tie", cards);
   const fan = given || routed ? undefined : data?.fan;
-  const path = drawn(run, BEND);
+  /** Hops only where the run is the one they were found on. */
+  const path = drawn(run, BEND, given || routed ? hops.get(id) ?? [] : []);
   const look = data?.wire ?? BARE;
   /** **Its anchors**: a head where it has one, else a short bar where it meets the card; a tie
    *  none. */

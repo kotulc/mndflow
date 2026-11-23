@@ -37,6 +37,11 @@ const WALLS: Record<"wide" | "tall", Record<Zone, Side>> = {
 };
 
 
+/** The wall a zone's cards stand beyond, by the canvas's shape. */
+export function wall_of(zone: Zone): Side {
+  return WALLS[SHAPE.aspect >= 1 ? "wide" : "tall"][zone];
+}
+
 /** **The outside of `layer`** laid into `graph` (a graph its usages are read through): a card for
  *  each end its lines in the layer above meet, under `ACROSS`, a child of the layer, and the
  *  line, its far end moved to that card. The layer's own ports are put on their zone's wall where

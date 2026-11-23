@@ -8,6 +8,7 @@
         "id": "code",
         "parent": null,
         "name": "code",
+        "description": "What a TypeScript codebase is made of: the kinds a translator writes a project in.",
         "library": {
           "tags": [
             {

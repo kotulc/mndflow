@@ -211,9 +211,13 @@ export function size_of(graph: Graph, id: Id, face: Face = face_of(graph, id),
   if (source !== id && !is_grid(graph, source)) return size_of(graph, source, face, card);
   /** Never sized, a card of its own height is as tall as its words run at a note's width. */
   if (free_height(graph, id)) {
-    const w = b.w ?? note_w();
     const text = [shown_name(graph, id), b.body ?? ""].filter(Boolean).join("\n");
-    return { w, h: b.h ?? Math.max(BLOCK.h, Math.ceil(note_h(text, w) / UNIT) * UNIT) };
+    const h_at = (w: number) => b.h ?? Math.max(BLOCK.h, Math.ceil(note_h(text, w) / UNIT) * UNIT);
+    /** **A note reads as a short paragraph** (2026-11-21: tall one-column notes): widened a unit
+     *  at a time, to twice a note's width, until it is no taller than half as wide. */
+    let w = b.w ?? note_w();
+    while (b.w === undefined && h_at(w) * 2 > w && w < note_w() * 2) w += UNIT;
+    return { w, h: h_at(w) };
   }
   /** A start's dot and an end's ring are one unit across, whatever face they sit on. */
   const shape = card_shape(graph, id);

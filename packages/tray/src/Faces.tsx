@@ -11,12 +11,17 @@ export type FacesProps = { graph: Graph; id: Id;
                             /** One face: the large where its look draws one, else the small. */
                             one?: boolean;
                             /** Members lit from a list beside it. */
-                            lit?: readonly string[] };
+                            lit?: readonly string[];
+                            /** The tallest the one face may stand: a large face taller is drawn
+                             *  small (the overview's card, 2026-11-22). */
+                            most?: number };
 
-export function Faces({ graph, id, one = false, lit }: FacesProps) {
+export function Faces({ graph, id, one = false, lit, most }: FacesProps) {
+  const known = known_face(graph, id);
+  const face = known === "large" && most && face_props(graph, id, "large").h > most ? "small" : known;
   return (
     <div className="faces">
-      {one ? <One graph={graph} id={id} face={known_face(graph, id)} {...(lit ? { lit } : {})} />
+      {one ? <One graph={graph} id={id} face={face} {...(lit ? { lit } : {})} />
         : <><One graph={graph} id={id} face="large" /><One graph={graph} id={id} face="small" /></>}
     </div>
   );

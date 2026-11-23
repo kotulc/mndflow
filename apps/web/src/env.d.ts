@@ -1,4 +1,5 @@
 /** What the app imports that only Vite resolves. */
+/// <reference types="vite/client" />
 
 /** libavoid's wasm, as the url Vite serves it at. */
 declare module "libavoid-wasm?url" {

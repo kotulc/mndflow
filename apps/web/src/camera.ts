@@ -37,10 +37,6 @@ export type Where = {
   step?: readonly Id[] | null;
 };
 
-/** The player's room below a stop's fit, as a share of what is seen: about a seventh of the
- *  canvas. */
-const ROOM = 0.18;
-
 /** A page is never magnified past 100%. */
 const PAGE = { most: 1 };
 
@@ -71,8 +67,7 @@ export function shot_of(w: Where): Shot {
     return { box: fitted ?? walk ?? { ...w.scene.areas![0]!, scale: 1 }, from: w.left, seq,
              ...(w.step?.length ? { glide: true } : {}) };
   }
-  /** **A stop fits its blocks on every drawing**, a page or a diagram too, so the player's
-   *  room is left below whatever a stop shows (2026-11-21). */
+  /** **A stop fits its blocks on every drawing**, a page or a diagram too. */
   if (fitted) return { box: fitted, seq, ...(w.step?.length ? { glide: true } : {}) };
   if (w.as === "fitted") return hop ? { box: hop, seq } : { box: null, hold: true, reveal, seq };
   if (w.as === "page") return { box: null, page: PAGE, reveal, seq };
@@ -82,7 +77,7 @@ export function shot_of(w: Where): Shot {
 /** **A stop's fit** (docs/presentations.md): the box round every block named — none, the whole
  *  drawing — each lifted to what
  *  the drawing draws it as, with a margin, never magnified past 1.5× — a calm camera, never a
- *  plunge — and room below for the player over the canvas's foot (2026-11-21). */
+ *  plunge. The player sits in the tray (2026-11-22), so nothing is kept clear below. */
 function fit_of(graph: Graph, scene: Scene, ids: readonly Id[]): Rect | null {
   const drawn = new Map(scene.nodes.map((n) => [n.id, n]));
   /** None named: the whole drawing, as a stop showing a diagram fits it. */
@@ -94,16 +89,15 @@ function fit_of(graph: Graph, scene: Scene, ids: readonly Id[]): Rect | null {
   const [x, y] = [Math.min(...boxes.map((b) => b.x)), Math.min(...boxes.map((b) => b.y))];
   const [w, h] = [Math.max(...boxes.map((b) => b.x + b.w)) - x,
                   Math.max(...boxes.map((b) => b.y + b.h)) - y];
-  /** A little air round it, and the player's room below: about a seventh of the canvas. */
+  /** A little air round it. */
   const pad = Math.max(w, h) * 0.04;
-  const player = (h + 2 * pad) * ROOM;
-  return { x: x - pad, y: y - pad, w: w + 2 * pad, h: h + 2 * pad + player, scale: 1 / 1.5 };
+  return { x: x - pad, y: y - pad, w: w + 2 * pad, h: h + 2 * pad, scale: 1 / 1.5 };
 }
 
 /** **The camera follows the step, as little as it can** (the user, 2026-11-21): the stop's view
  *  holds while the cards the step joins are in it; else it pans only as far as brings them in,
  *  a margin round them, never past the drawing's own edges, so its frame stays in sight; it
- *  grows only where they cannot fit. The player's room stays below. */
+ *  grows only where they cannot fit. */
 function follow(graph: Graph, scene: Scene, stop: Rect, step: readonly Id[]): Rect {
   const drawn = new Map(scene.nodes.map((n) => [n.id, n]));
   const boxes = step.flatMap((id) => {
@@ -115,13 +109,11 @@ function follow(graph: Graph, scene: Scene, stop: Rect, step: readonly Id[]): Re
   const [x0, y0] = [Math.min(...boxes.map((b) => b.x)) - pad, Math.min(...boxes.map((b) => b.y)) - pad];
   const [x1, y1] = [Math.max(...boxes.map((b) => b.x + b.w)) + pad,
                     Math.max(...boxes.map((b) => b.y + b.h)) + pad];
-  /** What is seen: the stop's box less the player's room below it; untouched where the step is
-   *  already in it. */
-  const seen_h = stop.h / (1 + ROOM);
+  /** Untouched where the step is already in the stop's box. */
   const inside = (b: { x: number; y: number; w: number; h: number }) => b.x >= stop.x
-    && b.x + b.w <= stop.x + stop.w && b.y >= stop.y && b.y + b.h <= stop.y + seen_h;
+    && b.x + b.w <= stop.x + stop.w && b.y >= stop.y && b.y + b.h <= stop.y + stop.h;
   if (boxes.every(inside)) return stop;
-  const [w, h] = [Math.max(stop.w, x1 - x0), Math.max(seen_h, y1 - y0)];
+  const [w, h] = [Math.max(stop.w, x1 - x0), Math.max(stop.h, y1 - y0)];
   const all = extent(scene);
   /** Along one axis: as it was where the span is in sight, else moved just enough, then held
    *  inside the drawing (centred on it where the view is wider). */
@@ -132,7 +124,7 @@ function follow(graph: Graph, scene: Scene, stop: Rect, step: readonly Id[]): Re
   };
   return { x: along(stop.x, w, x0, x1, all.x, all.x + all.w),
            y: along(stop.y, h, y0, y1, all.y, all.y + all.h),
-           w, h: h * (1 + ROOM), scale: stop.scale };
+           w, h, scale: stop.scale };
 }
 
 /** A block's box where the drawing draws it. */

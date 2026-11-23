@@ -1,0 +1,17 @@
+name: Crossings
+type: context
+description: "Lines that must cross and lines that must run side by side. Every source here reaches every target, so no layout avoids a crossing; a crossing hops, never reads as a join. Hub's three lines leave one face in lanes."
+blocks: [ Source one, Source two, Source three, Target one, Target two, Target three, Hub, Left, Middle, Right ]
+relations:
+  - Source one -> Target one
+  - Source one -> Target two
+  - Source one -> Target three
+  - Source two -> Target one
+  - Source two -> Target two
+  - Source two -> Target three
+  - Source three -> Target one
+  - Source three -> Target two
+  - Source three -> Target three
+  - Hub -> Left: one
+  - Hub -> Middle: two
+  - Hub -> Right: three

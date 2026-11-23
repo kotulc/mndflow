@@ -3,7 +3,7 @@
 import { children, flow_of, is_aside, is_box, is_interface, is_tie, type Flow, type Graph, type Id,
          type Relation, type Side } from "@mnd/core";
 import { STUB } from "./route";
-import { PORT, SEAT, seat_frac, seat_marks } from "./size";
+import { PORT, SEAT, SHAPE, seat_frac, seat_marks } from "./size";
 
 export type Seat = { side: Side; at: number };
 
@@ -27,6 +27,15 @@ export type Seating = {
 
 /** Where an interface with no lines sits, by its flow: as the definition view lays them. */
 const RESTS: Record<Flow, Side> = { in: "left", out: "right", both: "bottom" };
+
+/** **A room's way in and way out** (the user, 2026-11-21: inputs to outputs along the canvas):
+ *  an in-port on the wall the flow starts from, an out-port on the wall it ends at; left and
+ *  right on a landscape canvas, top and bottom on a portrait one. A port both ways has none. */
+export function flow_wall(flow: Flow): Side | null {
+  const wide = SHAPE.aspect >= 1;
+  return flow === "in" ? (wide ? "left" : "top") : flow === "out" ? (wide ? "right" : "bottom")
+    : null;
+}
 
 /** The handle a perch offers. */
 export function perch_id(edge: Id, end: "from" | "to"): string {
@@ -230,7 +239,7 @@ export function seat_all(graph: Graph, links: readonly Relation[], boxes: Readon
       ? at_seat(room!, ports.get(f)!) : box_of(f)!);
     /** A wall it names is kept; only where along it is worked out. */
     const side = said_side(graph, id) ?? (on === frame?.id
-      ? (toward ? nearest(box, toward) : rest(graph, id))
+      ? (flow_wall(flow_of(graph, id)) ?? (toward ? nearest(box, toward) : rest(graph, id)))
       : most(fars.map((f) => facing(box, far_box(f)))) ?? rest(graph, id));
     const want = toward
       ? (side === "left" || side === "right" ? toward.y + toward.h / 2 : toward.x + toward.w / 2)
