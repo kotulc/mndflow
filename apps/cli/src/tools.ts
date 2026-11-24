@@ -273,18 +273,24 @@ function focus(r: Read): string {
     ?? parts[0] ?? name_of(r);
 }
 
+/** What a model's block stands for says of itself, where it says nothing: read through its
+ *  `of` (2026-11-23: drafted steps said bare names). Handed in by whoever knows the library. */
+export type Describe = (b: { name: string; of?: string }) => string | undefined;
+
 /** A part's drafted sentence: its name and what it is for, to be rewritten. */
-const part_said = (b: { name: string; description?: string }) =>
-  `${b.name}${b.description ? `: ${b.description}` : "."}`;
+const part_said = (b: { name: string; of?: string; description?: string }, describe?: Describe) => {
+  const said = b.description ?? describe?.(b);
+  return `${b.name}${said ? `: ${said}` : "."}`;
+};
 
 /** A model's own tour: **its treemap, each part marked** (2026-11-22: a treemap draws no
  *  lines, so its stop says what the model is made of), then each diagram in its folder shown and
  *  stepped through its lines in order. */
-function model_tour(r: Read, at: string): Record<string, unknown>[] {
+function model_tour(r: Read, at: string, describe?: Describe): Record<string, unknown>[] {
   const parts = r.form.blocks.filter((b) => b.type !== "note") as
     { name: string; description?: string }[];
   const own = { title: name_of(r), at, summary: String(r.said["description"] ?? name_of(r)),
-                steps: parts.map((b): Step => ({ mark: b.name, text: part_said(b) })) };
+                steps: parts.map((b): Step => ({ mark: b.name, text: part_said(b, describe) })) };
   const dir = r.file.replace(/\.ya?ml$/, "");
   const shown = existsSync(dir) ? ordered(dir).map(read)
     .filter((d) => String(d.said["type"] ?? "") !== "model") : [];
@@ -315,7 +321,8 @@ function system_of(folder: string): string {
  *  from its actors stepped, leading `into` its first presentation. Saved drafts, the words to be
  *  rewritten and stops cut or added by whoever drafts it; a model's tour of that name is kept
  *  unless `force`. Answers each file's new text. */
-export function tour(folder: string, force = false): { file: string; text: string }[] {
+export function tour(folder: string, force = false,
+                     describe?: Describe): { file: string; text: string }[] {
   const models = ordered(folder).map(read).filter((r) => r.said["type"] === "model");
   if (!models.length) throw new Error(`${folder} holds no model file (type: model)`);
   /** The top tour leads into each other model's first presentation, drafted or its own. */
@@ -336,7 +343,7 @@ export function tour(folder: string, force = false): { file: string; text: strin
   const drafted = models.map((r, i) => {
     const name = name_of(r);
     const kept = kept_of(r);
-    const [own, ...shown] = model_tour(r, focus(r));
+    const [own, ...shown] = model_tour(r, focus(r), describe);
     /** Its summary says the system, never the model's description again (round 6). */
     const first = i === 0 && system ? { ...own!, summary: system } : own!;
     const stops = [first, ...shown, ...(i === 0 ? leads : [])];

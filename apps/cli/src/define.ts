@@ -17,7 +17,8 @@ import { parse, parseDocument, stringify, type Document } from "yaml";
 
 /** A unit as the fact tools list it, and as an agent may edit it. */
 type Unit = { unit?: string; name: string; kind?: string; description?: string; lines?: number;
-              signature?: string; source?: { file: string; line?: number }; parts?: Unit[] };
+              signature?: string; source?: { file: string; line?: number }; parts?: Unit[];
+              holds?: number };
 
 /** A relation between two units, by their dotted names. */
 type Link = { from: string; to: string; name?: string };
@@ -115,7 +116,9 @@ function head(u: Unit, pass: Pass): Record<string, unknown> {
   const kind = u.kind ?? "module";
   if (!KINDS.includes(kind)) throw new Error(`${u.name}: no kind ${kind}: ${KINDS.join(", ")}`);
   const values = { ...(u.lines !== undefined ? { lines: u.lines } : {}),
-                   ...(u.signature ? { signature: u.signature } : {}) };
+                   ...(u.signature ? { signature: u.signature } : {}),
+                   // A unit left closed by density says how many parts it holds (depth.ts)
+                   ...(u.holds ? { parts: u.holds } : {}) };
   const typed = u.unit ? pass.typed.get(u.unit) : undefined;
   return { name: name_of(u), type: typed ?? `code.${kind}`,
            ...(u.source ? { source: anchor(u.source) } : {}),
@@ -350,7 +353,7 @@ function sources_in(folder: string): Map<string, string> {
 }
 
 /** A file's own `source`, at its top. */
-function source_of(text: string): string | undefined {
+export function source_of(text: string): string | undefined {
   return /^\s*"?source"?:\s*"?([^"\s,]+)/m.exec(text.replace(/^\s{4,}.*$/gm, ""))?.[1];
 }
 

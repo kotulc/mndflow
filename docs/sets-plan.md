@@ -1,142 +1,151 @@
-# Diagram and presentation sets
+# Model sets
 
-**Proposed (the user, 2026-11-22), not built.** Common sets of models, diagrams and presentation stops for a given use case (a type of codebase), filled in by the tools from facts, so the agent decides less and results are consistent. Taken up after the iteration plan's round 6; judged as every round is, by commands run, files written by hand and the friction log. Delete this plan once sets are built and the decisions below are in design.md and presentations.md.
+**Agreed in shape (the user, 2026-11-23); first pass built 2026-11-23, uncommitted** (docs/tools/set.md is the spec of what is built; rounds 7–10 below). A model is made by a short pipeline: the agent writes a brief, the tools do the rest from facts by a set (a recipe of diagrams), the agent writes the words. Sets are the simplification pass (iteration plan 3a retired): most single-purpose tools become internal. Everything lives in the CLI app until mature, then spins out with the tools to a separate project (working name *Mndscape*). Delete this plan once sets are built and the decisions are in design.md and presentations.md.
 
 
 ## Why
 
 | Need | Because |
 |---|---|
-| **less agent input** | the agent decides scope, diagrams, parts, order and words per project; most of that is the same for every project of a kind |
-| **consistent results** | two agents on one codebase invent two different sets of models (rounds 1–5); a set fixes the slots |
-| **better tours** | drafted stops are mechanical (`a → b: name`); a set carries each stop's intent, so the draft says why, not only what |
+| **few agent decisions** | the agent should only say what a model is about; scope, diagrams, parts and order follow from that |
+| **consistent results** | two agents on one codebase invent two different sets of models (rounds 1–5); a set fixes the diagrams |
+| **high-level first** | round 6a's tours went into the weeds (a plugin family, middleware) where the user wanted the big picture |
+| **fewer commands** | many tools are special cases; one pipeline replaces them |
 
 
-## The shape
+## The pipeline
 
-| Piece | Is |
-|---|---|
-| **slot** | one diagram in one model: its kind, the facts that feed it, what the agent must pick (an entry, a datum), its intent in a sentence, whether it is optional |
-| **set** | named slots grouped into models (one overview, decomposed by use case) and a tour outline over them; a set `extends` another |
-| **core** | the slots every set has (below); a domain set adds 2 to 5 |
-| **detection** | signals in the facts that score each set; the highest above a threshold is proposed, ties and low scores ask |
-| **report** | each slot filled, partial (a weaker fact used), skipped (below the floor or absent) or needs the agent (no fact gives it), with why and the fix |
-
-
-## The core
-
-**A treemap is containment alone** (2026-11-22), so context is the only relation view at the top and is always in the core.
-
-| Slot | Model | Kind | Facts | Tool or agent |
-|---|---|---|---|---|
-| overview | Overview | tree (treemap) | units, runtimes | parts by the tool; which are primary, the agent |
-| context | Overview | context | imports (outside), entries, edges | boxes and lines by the tool; actor names, the agent |
-| main flow | one model per chosen entry | flow or sequence | entries, then calls or trace | the tool, once the agent picks the entry |
-| data model | Data | class | classes, schema | the tool; which classes, the agent |
-| stored shape | Data | entity | classes with keys | the tool, where keyed classes exist |
-| about | Overview | About band | presentations, entries, library | the tool |
-| tour | every model | presentation | the set's tour outline | skeleton by the tool; words and cuts, the agent |
-| what runs it | Overview | flow | workflows | the tool, where workflows exist |
-
-
-## Use cases
-
-What a newcomer needs, in order, and what the set adds to the core. Facts: units, imports, classes, entries, edges, runtimes, calls, data, workflows, schema, trace.
-
-| # | Use case | A newcomer needs, in order | Adds | Tour after the overview and context |
-|---|---|---|---|---|
-| 1 | **web service / API** | what it serves, to whom; the request path; the data; auth; background work; external calls | request (sequence from a route's trace), lifecycle (state from a status field), auth (flow), background (swimlane), ingest (mapping) | request → data → stored shape → lifecycle → background |
-| 2 | **server-rendered web app** | pages and who uses them; a page request; forms; data; admin and jobs | 1, plus page map (context of url prefixes), forms (flow), templates (mapping) | pages → a page request → forms → data → background |
-| 3 | **CLI tool** | its commands; one run end to end; config and files; output | commands (context), one run (flow), config (class, mapping) | commands → a run → config → outputs |
-| 4 | **library / SDK** | the problem; its public API; a typical use; core types; extending it | public surface (tree), typical use (sequence from an example or test), extension points (class family), dependencies (context) | surface → core types → one call → extending it |
-| 5 | **data pipeline / ETL** | sources and sinks; stages; the data at each stage; schedule; failure | stages (flow), a record's life (dataflow), field mapping (mapping), schedule (swimlane) | pipeline → a record's life → mapping → schedule |
-| 6 | **event-driven / workers** | what comes in; the consumers; what each does; retries; what it emits | one event (sequence), handlers (flow), message types (class), job states (state) | one event → consumers → messages → failure and retry |
-| 7 | **frontend app** | screens; component structure; state and fetching; the main action; the API | screens (context), components (tree), main action (sequence), state (state or dataflow) | screens → components → one action → state → API |
-| 8 | **mobile app** | as 7, plus device permissions and sync | 7, plus sync (swimlane) | as 7; agent-heavy until a Swift or Kotlin translator exists |
-| 9 | **ML training / inference** | data in; preprocessing; the model; training; evaluation; serving | pipeline (flow), artifacts (mapping, from a short run), config and model structure (class), serving (sequence) | data → training → artifacts → serving |
-| 10 | **game** | the main loop; entities and states; systems; one frame | main loop (flow), entities (class), states (state), one frame (sequence) | loop → entities → states → a frame |
-| 11 | **compiler / interpreter** | its stages; the IR; one program through it; the runtime | stages (flow), IR types (class), one program (dataflow), runtime (state or sequence) | stages → IR → one program → runtime |
-| 12 | **infrastructure as code** | resources; environments; dependency order; apply; state and secrets | resources (context), apply (flow), environments (swimlane) | agent-heavy: no translator reads HCL or YAML yet |
-| 13 | **monorepo of services** | the services and who calls whom; shared libraries; one request across them; deploy units | service map (context), a request across services (sequence), shared data (class), deploys (flow); each service its own set, `into` its tour | services → one request across → each service → shared types |
-| 14 | **plugin / extension host** | the host; extension points; a plugin's life; one plugin call | contract (class), lifecycle (state), one call (sequence) | host vs plugins → contract → lifecycle → a call |
-| 15 | **build / generator** (mndsite) | inputs and outputs; the build run; config; what it writes | build (flow), inputs to outputs (mapping), config (dataflow, class) | inputs → the build → what it writes |
-
-A project matching several (healthchecks: web service and workers) gets one overview with a model per matched set.
-
-
-## Detection
-
-| Signal | Points at | Confidence |
+| Step | Who | Does |
 |---|---|---|
-| route entries; imports django, flask, fastapi, express | 1 or 2 | high |
-| …plus templates and render imports | 2 over 1 | medium |
-| command entries; imports argparse, click, typer, commander; a `bin` | 3 | high |
-| no entries, many exported units | 4 | medium |
-| imports airflow, prefect, dbt, pandas; scheduled entries | 5 | medium |
-| imports celery, kafka, rq, bullmq; task or listener entries | 6 | high |
-| imports react, vue, svelte; a browser runtime | 7 | high |
-| imports torch, tensorflow, sklearn | 9 | high |
-| several top packages, each with entries | 13, then a set per package | medium |
-| ORM base classes | adds stored shape | high |
-| status or choices fields | adds a lifecycle | medium |
-| workflows | adds what runs it | high |
+| 1. **brief** | agent | per model: what the system or part is, what the model illustrates, how it fits the big picture; written in the model file (its description, why and fit) |
+| 2. **scope** | agent, from the brief | the units of code the model covers |
+| 3. **facts** | tools | a generic translator per language (Python, TypeScript) gives a graph of facts; a level is chosen by density (*Depth by density*); no per-framework or per-codebase code |
+| 4. **set** | default, or the agent's pick | a recipe of diagrams, each fed by one fact family; a diagram without facts is skipped and reported |
+| 5. **generate** | tools | the diagrams, pointers to the relevant parts and definitions, a tour skeleton seeded from the brief |
+| 6. **words** | agent | the tour's words; a few dials where the defaults fall short |
 
-No match: the core alone, reported as *no use case matched; closest: …*. Never fails.
+The defaults must work on most projects with no dials touched.
 
 
-## In the tools
+## Models
 
-| Command | Does |
+- **a model is a container** of diagrams and pointers to relevant parts and definitions, told by one tour
+- **models are a flat list**: no sub-models; a tour stop leads `into` another model instead
+- **a model stays at its level**: a diagram shows the blocks at its level; detail lives inside a block (its parts or attributes) and is drawn only when the brief asks for it
+
+
+## Fact families
+
+| Family | Facts | Feeds |
+|---|---|---|
+| **structure** (import paths) | units, imports, runtimes | treemap, context |
+| **user paths** | entries, calls, trace | sequence, flow, swimlane |
+| **data paths** | classes, schema, data reads and writes | class, entity, dataflow, state, mapping |
+
+**Generic entries** (no framework readers): *declared* (pyproject `scripts`, package.json `bin`, `__main__`), *decorated* (an own function decorated by an outside package), *registered* (an own function or class passed to an outside call, or named in a settings string). A route's or command's text is kept where it is a literal argument. Today's Django readers (`commands`, `routes` in apps/py `entries.py`) give way to these.
+
+## Depth by density
+
+Facts form one graph: a containment tree (packages → modules → classes → functions) with relations between its nodes. Nothing is dropped by a threshold.
+
+- **open level by level**, wide before deep, while the drawing stays under a comfortable density (blocks per view, lines per block); the busiest or largest branch opens first, so depth may differ by branch
+- **what stays closed folds into its parent**: its relations lift to the nearest open ancestor, its contents become the block's parts or attributes
+- **the agent targets**: a subtree to open further (from the brief) or the density limit, never a level by hand
+- **the library** takes the same rule: one comfortable density for the whole tree
+
+**Linking** (later): every fact anchored to its source so `check` flags drift (design.md *tools, then an agent*).
+
+
+## Sets
+
+| Set | Diagrams |
 |---|---|
-| `mnd set list` | the sets and what each needs |
-| `mnd set detect <project>` | the cheap facts, each set scored with the signals it matched |
-| `mnd set apply <set or auto> <project> <folder> [--scope …] [--pick slot=entry] [--dry]` | the existing `init`, `define`, `draw` and `presentation draft` per slot; additive, never overwrites without `--force`; prints the report |
-| `mnd set check <folder>` | slots filled, empty or below the floor; stops showing nothing |
+| **system** (default) | treemap and context (structure); the main user paths as sequence or flow; the data model as class or entity |
+| **one path** | a user path end to end: sequence, flow, swimlane where it crosses runtimes |
+| **data model** | class, entity, a state per status field, dataflow of one record |
 
-**What the agent still decides**: the scope; which slots to drop or add; the pick a slot needs (the tool ranks candidates); the words and cuts of every tour. The set's `intent` lines seed the stops' summaries.
+More sets only by need. A set is a data file in the CLI (a recipe, not definitions).
+
+
+## Commands
+
+| Today | With sets |
+|---|---|
+| 11 fact tools (`imports`, `calls`, `trace`, …) | internal; `mnd facts <project>` stays to inspect them |
+| 10 diagram tools, one per kind | `mnd draw <kind>`, the escape hatch; each kind brings its default facts |
+| `init`, `define`, `model`, `presentation draft` | folded into `mnd set apply` |
+| `check` | also reports each diagram filled, skipped or below the floor |
+
+The agent's surface: `set list`, `set apply`, `draw`, `presentation check`/`list`, `check`.
 
 
 ## Evidence (round 6a, 2026-11-22)
 
-Two agents rewrote healthchecks' tours under *a treemap is containment alone* (iteration-plan.md *Round 6a*).
+Two agents rewrote healthchecks' tours (iteration-plan.md *Round 6a*). Mechanical decisions (9–11 each): a stop per diagram, steps in the diagram's order, an intro stop per model, marks for a part's modules. Judgement: which models, their order, which lines to step, cuts, every *why*. The words stay the agent's; sets remove the mechanical decisions and most of the model choice.
 
-| | Haiku | Sonnet |
+
+## Decided (the user, 2026-11-23)
+
+| # | Question | Decision |
 |---|---|---|
-| decisions, mechanical / judgement | 11 / ~40 (most judgement is wording) | 9 / 15 (wording counted once) |
-| mechanical | an `into` stop per sub-model, a stop per diagram, steps in the diagram's order, an intro stop per sub-model, marks for a part's modules | the same |
-| judgement | which use cases earn a model, their order, which context lines to step, cuts, which parts to mark, every *why* | the same, plus which datum (the flip) a dataflow follows |
+| 1 | required diagrams | every diagram optional, skipped ones reported; if all are skipped, the model's tree of parts (a treemap from structure facts) stands in |
+| 2 | model names | the set's name by default, updated from the brief |
+| 3 | prose in sets | intents only; the agent rewrites and adds context |
+| 4 | how much to draw | density over a depth-ordered graph (*Depth by density*), not a cut per level; the agent may target a subtree or the limit |
+| 5 | flat models on the map | as any containment: the standard treemap, nothing special |
 
-**The Django web-service set both proposed** (fills use case 1 above):
-
-| Piece | From |
-|---|---|
-| overview: the Django apps as parts; actors (browser user, API client, cron job), externals (database, mail, cache, queue) | units, imports, settings |
-| context | imports, `urls.py`, settings |
-| a model per request family (web UI, JSON API, ping or webhook endpoints), each a sequence from a test-client trace and a flow per non-trivial view | entries (routes), trace |
-| a model per management command or background job (a swimlane where it crosses view, worker and an external service) | entries (commands), calls |
-| data: entity and class from the models; a state per status or choices field; a mapping from forms or serializers to fields | classes |
-| tour: what it is → what it is made of → its world → data → per use case: why, sequence, flow, mapping → failure paths | the set's tour outline |
-
-**What did not fit a template**: the *why* sentences, which datum a dataflow follows, which use cases earn a model, a plugin family (the transports), request-wide middleware, and what the trace cannot see (ORM writes, the far ends of SMTP and HTTP).
-
-
-## Decisions for the user
-
-| # | Question | Leaning |
-|---|---|---|
-| 1 | **where sets live**: built into the kit, or as library packages a workspace imports (*no consumer features in mndflow*; patterns compose as packages) | the core in the kit; domain sets as packages, the format general |
-| 2 | a set as a new file format, or as a package of pattern definitions | decide with 1 |
-| 3 | every slot optional (report and skip) or required slots | all optional, reported |
-| 4 | fixed model names (*Request path*) or named from the pick (*Receive a ping*) | named from the pick, the slot's name as fallback |
-| 5 | do sets carry prose templates for stops, or intents only | intents only; words stay the agent's |
-| 6 | a project matching several sets | one overview, a model per set |
+**Open**: the density numbers (start from today's `LEAST` and draw ceilings, tune on rounds).
 
 
 ## Order
 
 | # | Work | Done when |
 |---|---|---|
-| 1 | decisions 1–6 | agreed |
-| 2 | the core, the web-service set (healthchecks), the CLI set (mndflow's own cli) and the build set (mndsite) as data; `set detect`, `set apply --dry` | each project detected right; the dry report reads true |
-| 3 | `set apply` and `set check`; `presentation draft` follows the set's tour | a round on healthchecks needs fewer commands than round 5 and no hand-written YAML but the words |
-| 4 | more sets, by need | a project of a new kind is modelled with its set |
+| 1 | generic entries in apps/py; depth by density over the facts graph | healthchecks' entries found without the Django readers; its library opens to a readable depth with no dial touched |
+| 2 | the system set as data; `set apply --dry` prints the report | the dry report on healthchecks reads true |
+| 3 | `set apply`, flat models, the tour seeded from the brief; fact tools internal | a healthchecks round needs only briefs, a set pick and words |
+| 4 | TypeScript behind the same facts (iteration plan 5); more sets by need | mndsite modelled by the system set |
+
+
+## Rounds (2026-11-23)
+
+Healthchecks from scratch with `set apply` and a brief (samples/trial/brief.md; outputs s7–s9 since cleared, s10haiku and s10sonnet kept with logs beside them). Every round ended with `check` and `presentation check` clean and no hand-written YAML but the brief and the tours' words.
+
+| Round | Commands (Sonnet / Haiku) | Fixed after it |
+|---|---|---|
+| 7 | 15 / ~25 | context thinned to the ceiling; names said with their holder (`api views`); entity else class; `--force` removes models no longer planned; calls follow handed functions and values named for a class (sendalerts reaches delivery) |
+| 8 | 11 / ~26 | brief `externals`, `parts`; dry run shows brief keys and what each path runs; clash names counted over the library only; a picked twin path said; renamed parts' old files removed |
+| 9 | 16 / 22 | paths spread over parts; `--pick` by last word, unknown refused; brief `actors`; calls into a shared helper part left out of sequences; YAML hint |
+| 10 | ~19 / 21 | data diagrams named for their model (a model named `Records` shadowed the diagram) |
+
+## Review (2026-11-23)
+
+A code review of the first pass; every finding fixed and run on healthchecks again (`check`, `presentation check` clean; 303 tests pass).
+
+| Finding | Fixed |
+|---|---|
+| `--force` removed every model the plan did not write, another set's and hand-written ones too | a folder's hidden `.set.json` says what each set wrote; only this set's earlier models are removed |
+| a second set in one folder rewrote the shared library (no brief) and could write a second model of the same name | the folder keeps its brief in `.set.json`; a brief given adds to it; model names are kept per set; a name another set wrote is refused before writing |
+| a brief's external naming no overview part threw halfway, the folder half-written | checked before anything is written (`--dry` too) |
+| a non-number dial (`--budget 4O`) opened nothing | refused |
+| a route wrapped in an outside call (`csrf_exempt(views.ping)`) was lost | the wrapper is read through; only a call naming an own module or list mounts |
+| exec-form command lines (`CMD ["python", "-m", "x"]`) were missed | words read without brackets and quotes |
+| `raise SystemExit(main())` ran `SystemExit` | the first own function the main block calls |
+| a unique method name claimed `d.get`, `items.append` | never for a name the language's own values have |
+| decorators counted as ways in | only routes, processes and scripts count |
+| a scope matched sibling prefixes (`hc.api` kept `hc.apiary`) | a dot boundary |
+| the lift to the library written three times | one `lifted`, one `top_units` |
+
+Kept: `calls` is asked per path candidate, lazily, only until the set has its paths (3 to 6 runs).
+
+**Answered (the user, 2026-11-23)**, built the same day:
+
+| Question | Answer | Built |
+|---|---|---|
+| one caller per kind of way in | split per route | a route's caller is a client of the overview part it enters (`api client`, `dashboard client`); processes and scripts an `Operator`; the dry run lists them as the brief's `actors` keys |
+| `--force` drops hand-written tours | keep them, no complex merge | a model rewritten keeps its `presentations:` whole, as written; only a model with none is drafted; `check` says a name a kept tour no longer reaches |
+| drafted steps are bare names | use descriptions | a drafted step on a part says its library description (docstring, or the brief's `parts`), read through its `of` |
+| incidental calls in sequences (a storage health check, nag dates) | leave them: the agent cuts them from the tour's words | nothing to build |
+
+Also 2026-11-23: the door's message names the first thing it dropped (core `door.ts` `say`: "dropped 16" alone gave no clue).
+

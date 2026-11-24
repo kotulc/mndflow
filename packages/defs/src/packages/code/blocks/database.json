@@ -1,0 +1,8 @@
+{
+  "id": "database",
+  "name": "database",
+  "type": "external",
+  "description": "A store outside the code that keeps its records: drawn across the context's edge like any external, wearing the database's mark.",
+  "def": {},
+  "settings": { "card": { "icon": "data" } }
+}

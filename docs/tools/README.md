@@ -2,8 +2,11 @@
 
 **What a person or an agent composes models with** (2026-11-09). **A translator lists, the agent picks, `define` writes** (2026-11-19): fact tools list a system's components, parts and relations, each pointed at part of it (`--unit`) at a level of detail (`--depth`); the agent keeps what matters and `define` writes it as the library. Plain CLI tools, as simple as possible: a person uses them as readily as an agent, and nothing in a model or diagram records who made it (2026-11-11). Each tool answers one question. **Fact tools** read source and return JSON. **Diagram tools** draw one diagram from a selection and write it as a diagram file. Whoever uses them decides what is primary, names it, and composes the models. Added to as the mndsite review finds cases.
 
+**Start with `set`** (2026-11-23, sets-plan.md): `mnd set apply` runs the whole pipeline from a brief — facts, the library opened by density, every diagram of a set, the tours — and reports each diagram filled or skipped. The tools below are what it composes; use them directly only for what a set does not draw.
+
 | Tool | Kind | Answers |
 |---|---|---|
+| set | model | a set's models from a project's facts and a brief, in one command (set.md) |
 | entries | fact | how is the system started, and by whom |
 | edges | fact | where does the system meet the outside |
 | runtimes | fact | where does each part of the code run |

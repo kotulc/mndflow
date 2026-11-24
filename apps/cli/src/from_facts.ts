@@ -135,7 +135,8 @@ function lifted(said: Read, kind: string, held?: Held): { said: Read; left: stri
     left.add(u);
     return undefined;
   };
-  const holder = (f: string) => f.slice(0, f.lastIndexOf("."));
+  // A function's holder; a class made (`Flip(...)`) is its own holder where the library has it
+  const holder = (f: string) => (held?.has(f) ? f : f.slice(0, f.lastIndexOf(".")));
   const by_holder = kind === "sequence" && said.functions;
   const edges = said.edges.flatMap((e) => {
     const [a, b] = by_holder ? [up(holder(e.from)), up(holder(e.to))] : [up(e.from), up(e.to)];

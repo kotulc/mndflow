@@ -1,0 +1,35 @@
+# The default set: the whole system at a glance, its main paths, its data (sets-plan.md).
+name: system
+description: The whole system - what it is made of, how its parts lean on each other, its main paths and its data.
+models:
+  - name: Overview
+    holds: top
+    intent: What the system is, what it is made of and who uses it.
+    diagrams:
+      - name: Context
+        kind: context
+        from: imports
+        intent: Which parts lean on which, and what each reaches outside the system.
+  - name: "{path} path"
+    each: path
+    count: 3
+    holds: reached
+    intent: "What happens when {way} runs: from the way in to everything it reaches."
+    diagrams:
+      - name: "{model} sequence"
+        kind: sequence
+        from: calls
+        intent: "Who takes part when {way} runs, and in what order they call each other."
+  - name: Data
+    holds: classes
+    intent: The records the system keeps and how they refer to each other.
+    diagrams:
+      - name: "{model} entities"
+        kind: entity
+        from: keyed
+        intent: How the records are stored and keyed to each other.
+      - name: "{model} classes"
+        kind: class
+        from: classes
+        unless: "{model} entities"
+        intent: The data classes, their fields and what each refers to.

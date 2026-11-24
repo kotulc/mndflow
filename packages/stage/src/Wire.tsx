@@ -167,7 +167,7 @@ export function Wire(props: EdgeProps<LineEdge>) {
   const box = placed && on_run(run, placed.at) ? placed
     : name_box(run, middle.length + times.length, fan, data?.level, cards);
   const beside = BESIDE[box.side](box);
-  const shows = line_shows(length_of(run), (middle.length + times.length) * NAMED.glyph);
+  const shows = line_shows(length_of(run), box.w);
   const loud = hot || !!selected;
   const named = shows.name || loud || naming.id === id;
   const ends = shows.ends || loud;

@@ -1,0 +1,18 @@
+# One path end to end: the way in picked with --pick, else the one reaching most.
+name: path
+description: One path through the system, from the way in to everything it reaches.
+models:
+  - name: "{path} path"
+    each: path
+    count: 1
+    holds: reached
+    intent: "What happens when {way} runs: from the way in to everything it reaches."
+    diagrams:
+      - name: "{model} sequence"
+        kind: sequence
+        from: calls
+        intent: "Who takes part when {way} runs, and in what order they call each other."
+      - name: "{model} flow"
+        kind: flow
+        from: calls
+        intent: "The steps {way} goes through, function by function."

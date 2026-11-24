@@ -12,6 +12,9 @@
     ]
   },
   "settings": {
+    "card": {
+      "icon": "data"
+    },
     "style": {
       "family": "muted"
     }

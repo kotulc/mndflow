@@ -120,6 +120,9 @@
         "description": "A component that stores state other components read: a collection, holding records of one type (`records.of`).",
         "order": 2,
         "settings": {
+          "card": {
+            "icon": "data"
+          },
           "style": {
             "family": "muted"
           }

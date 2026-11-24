@@ -265,13 +265,16 @@ export function validate(graph: Graph): Fault[] {
   return inspect(graph).faults;
 }
 
-/** What to say, once. Empty when nothing was wrong. */
+/** What to say, once: the counts, and what the first thing dropped was (2026-11-23: "dropped 16"
+ *  alone gave no clue). Empty when nothing was wrong. */
 export function say(faults: Fault[]): string {
   const repaired = faults.filter((f) => f.kind === "repaired").length;
-  const dropped = faults.filter((f) => f.kind === "dropped").length;
+  const dropped = faults.filter((f) => f.kind === "dropped");
   const parts: string[] = [];
   if (repaired) parts.push(`repaired ${repaired}`);
-  if (dropped) parts.push(`dropped ${dropped}`);
+  if (dropped.length) {
+    parts.push(`dropped ${dropped.length}: ${dropped[0]!.what}${dropped.length > 1 ? ", …" : ""}`);
+  }
   return parts.join(", ");
 }
 

@@ -140,6 +140,20 @@
           }
         }
       },
+      "code.database": {
+        "id": "code.database",
+        "parent": "code.dir.blocks",
+        "name": "database",
+        "type": "external",
+        "def": {},
+        "description": "A store outside the code that keeps its records: drawn across the context's edge like any external, wearing the database's mark.",
+        "order": 4,
+        "settings": {
+          "card": {
+            "icon": "data"
+          }
+        }
+      },
       "code.dir.blocks": {
         "id": "code.dir.blocks",
         "parent": "code",
@@ -166,7 +180,7 @@
           ]
         },
         "description": "A function a module declares: what it takes and gives back, said by its signature.",
-        "order": 4,
+        "order": 5,
         "settings": {
           "card": {
             "icon": "code_function"
@@ -183,7 +197,7 @@
         "type": "block",
         "def": {},
         "description": "A shape of data with no behaviour of its own (an interface, a protocol, a trait): its fields are its attributes, what it extends is its type.",
-        "order": 5,
+        "order": 6,
         "settings": {
           "card": {
             "icon": "code_interface",
@@ -248,7 +262,7 @@
           ]
         },
         "description": "A source file (a module, a compilation unit): its functions and values are its parts, the types it declares are definitions in the library, and its imports are its dependencies.",
-        "order": 6,
+        "order": 7,
         "settings": {
           "card": {
             "icon": "code_module"
@@ -272,7 +286,7 @@
           ]
         },
         "description": "A package of the project (a package, a crate, a namespace, a Django app): the modules under its folder, and what it imports from other packages.",
-        "order": 7,
+        "order": 8,
         "settings": {
           "card": {
             "icon": "code_package"
@@ -292,7 +306,7 @@
         "type": "block",
         "def": {},
         "description": "A named data type (a type alias, a struct, a record, a dataclass): its fields are its attributes.",
-        "order": 8,
+        "order": 9,
         "settings": {
           "card": {
             "icon": "code_type",
@@ -321,7 +335,7 @@
           ]
         },
         "description": "A constant or variable a module declares, and its type.",
-        "order": 9,
+        "order": 10,
         "settings": {
           "card": {
             "icon": "code_value"

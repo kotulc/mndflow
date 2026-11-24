@@ -176,7 +176,12 @@ export function drawn(run: readonly Point[], bend: number, hops: readonly Point[
     const p = run[i - 1]!;
     const c = run[i]!;
     const n = run[i + 1]!;
-    const r = Math.min(bend, len(p, c) / 2, len(c, n) / 2);
+    /** **A corner bends tighter for a hop beside it** (a crossing near a corner drew none): the
+     *  curve stops short of a hop on either level leg it joins. */
+    const near = hops.filter((h) => (h.y === c.y && p.y === c.y && on_leg(h, p, c))
+      || (h.y === c.y && n.y === c.y && on_leg(h, c, n)))
+      .map((h) => Math.abs(h.x - c.x) - HOP - 1);
+    const r = Math.max(0, Math.min(bend, len(p, c) / 2, len(c, n) / 2, ...near));
     line(toward(c, p, r));
     const to = toward(c, n, r);
     d += ` Q${c.x},${c.y} ${to.x},${to.y}`;
@@ -211,24 +216,25 @@ export function middle_of(run: readonly Point[], fan?: Fan): Point & { level: bo
   return { ...best.at, level: best.level };
 }
 
-/** How far beside its run a name sits: above a level leg, right of an upright one; a name's glyph
- *  and its line's height at the layout's size, in pixels. */
-export const NAMED = { lift: 8, aside: 6, glyph: 6.2, line: 16 };
+/** How far beside its run a name sits: above a level leg, right of an upright one; a name's glyph,
+ *  its padding either side (stage `routes.css` `.mnd-wire-name`) and its line's height at the
+ *  layout's size, in pixels. */
+export const NAMED = { lift: 8, aside: 6, glyph: 6.2, pad: 5, line: 16 };
 
-/** Which side of its leg a name sits on, and the point it is set from: the leg's middle. */
+/** Which side of its leg a name sits on, and the point on the leg it is set from. */
 export type NameBox = { x: number; y: number; w: number; h: number;
                         side: "above" | "below" | "right" | "left"; at: Point };
 
 /** **The box a line's name takes**, at the layout's size: beside one of its own legs (past the
  *  fan point), the longest first — above or below a level leg (a `level` name always reads level,
- *  set on the leg's middle), right or left of an upright one — **the first clear of every card**
+ *  set on the leg), right or left of an upright one — **the first clear of every card**
  *  (`cards`); where none is, above or right of the longest. The one geometry the stage draws by
  *  and the measure counts. */
 export function name_box(run: readonly Point[], chars: number, fan?: Fan, level = false,
                          cards: readonly { x: number; y: number; w: number; h: number }[] = [],
                          others: readonly (readonly Point[])[] = []): NameBox {
   const own = fan ? past(fan.end === "to" ? [...run].reverse() : run, fan.by) : run;
-  const [w, h] = [chars * NAMED.glyph, NAMED.line];
+  const [w, h] = [chars * NAMED.glyph + NAMED.pad * 2, NAMED.line];
   /** **A name sits by a leg its line has alone** (2026-11-21: a trunk several lines share
    *  names none of them), the longest first. */
   const shared = (p: Point, q: Point) => {
@@ -238,8 +244,12 @@ export function name_box(run: readonly Point[], chars: number, fan?: Fan, level 
   const legs = own.slice(1).map((q, i) => [own[i]!, q] as const)
     .sort((a, z) => Number(shared(...a)) - Number(shared(...z))
       || len(z[0], z[1]) - len(a[0], a[1]));
-  const boxes = (legs.length ? legs : [[own[0]!, own[0]!] as const]).flatMap(([p, q]): NameBox[] => {
-    const at = { x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 };
+  /** Each leg's middle first; then, where no middle is clear, a quarter along from either end. */
+  const spots = (legs.length ? legs : [[own[0]!, own[0]!] as const]).flatMap(([p, q]) =>
+    [0.5, 0.25, 0.75].map((f, i) => ({ p, q, f, i })))
+    .sort((a, z) => Number(a.i > 0) - Number(z.i > 0));
+  const boxes = spots.flatMap(({ p, q, f }): NameBox[] => {
+    const at = { x: p.x + (q.x - p.x) * f, y: p.y + (q.y - p.y) * f };
     const flat = p.y === q.y || level;
     return flat
       ? [{ x: at.x - w / 2, y: at.y - NAMED.lift - h / 2, w, h, side: "above" as const, at },

@@ -67,12 +67,16 @@ type Box = { id: Id; w?: number; h?: number; kids?: Box[]; region?: true };
 
 /** What ELK is given: the boxes, and the lines between them by their ends; for a behaviour,
  *  `main`, each step's first line (`from\nto`), kept straight along one axis; `walls`, each
- *  drawn box meeting what is across the frame, by the wall its line leaves through; `beside`,
+ *  drawn box meeting what is across the frame, by the wall its line leaves through (`own`: a
+ *  line to one of the room's own ports); `beside`,
  *  each note and the box it is tied to, which it sits next to in one rank; `structure`, a
  *  drawing of what there is rather than of what flows (class, entity), laid whichever way fits
  *  the canvas best. */
 type Spec = { root: Box; lines: [Id, Id][]; main?: Set<string>; ranked?: boolean;
-              walls?: [Id, Side][]; beside?: [Id, Id][]; structure?: boolean };
+              walls?: Wall[]; beside?: [Id, Id][]; structure?: boolean };
+
+/** A drawn box pulled toward a wall, and whether by one of the room's own ports. */
+type Wall = [Id, Side, boolean];
 
 /** **The kinds laid along an axis** (docs/diagrams/flow.md *Layout*): steps in one row along the
  *  canvas's long side, never wrapped, each step's first line straight on it. */
@@ -139,15 +143,15 @@ function spec_of(graph: Graph, layer: Id): Spec {
 
 /** **What is across pulls toward its wall** (2026-11-21: paths readable): each drawn box a line
  *  joins to what stands outside the frame, by the wall that line leaves through, once a pair. */
-function walls_of(graph: Graph, layer: Id, lift: (id: Id) => Id | null): [Id, Side][] {
-  const pairs = new Map<string, [Id, Side]>();
+function walls_of(graph: Graph, layer: Id, lift: (id: Id) => Id | null): Wall[] {
+  const pairs = new Map<string, Wall>();
   /** The room's own ports pull too: each toward the wall it names, else its flow's. */
   const port = (id: Id) => graph.blocks[id]?.parent === layer && is_interface(graph, id);
   for (const e of edges_in(graph, layer)) {
     const [wall, near] = port(e.from) ? [e.from, e.to] : port(e.to) ? [e.to, e.from] : [];
     const side = wall && (graph.blocks[wall]?.side ?? flow_wall(flow_of(graph, wall)));
     const at = near && lift(near);
-    if (side && at) pairs.set(`${at}|${side}`, [at, side]);
+    if (side && at) pairs.set(`${at}|${side}`, [at, side, true]);
   }
   const out = outside_of(graph, layer);
   if (!out) return [...pairs.values()];
@@ -155,7 +159,9 @@ function walls_of(graph: Graph, layer: Id, lift: (id: Id) => Id | null): [Id, Si
     const [far, near] = e.from.startsWith(ACROSS) ? [e.from, e.to] : [e.to, e.from];
     const zone = out.zones.get(far);
     const at = lift(near);
-    if (zone && at) pairs.set(`${at}|${wall_of(zone)}`, [at, wall_of(zone)]);
+    if (zone && at && !pairs.has(`${at}|${wall_of(zone)}`)) {
+      pairs.set(`${at}|${wall_of(zone)}`, [at, wall_of(zone), false]);
+    }
   }
   return [...pairs.values()];
 }
@@ -261,9 +267,9 @@ async function laid_out(spec: Spec): Promise<Placement> {
                ...(spec.main?.has(p) ? { layoutOptions: STRAIGHT } : {}) };
     });
     /** The room's walls as ports, each joined to the children meeting what is across it. */
-    const walled = box.id === spec.root.id ? (spec.walls ?? []).flatMap(([id, side]) => {
+    const walled = box.id === spec.root.id ? (spec.walls ?? []).flatMap(([id, side, own]) => {
       const kid = chain(id).find((x) => here.has(x));
-      return kid ? [[kid, side] as const] : [];
+      return kid ? [[kid, side, own] as const] : [];
     }) : [];
     const ports = [...new Set(walled.map(([, side]) => side))]
       .map((side) => ({ id: `@wall:${side}`, layoutOptions: { "elk.port.side": SIDES[side] } }));
@@ -271,8 +277,10 @@ async function laid_out(spec: Spec): Promise<Placement> {
                                                     targets: [`@wall:${side}`] }));
     const run = async (opts: Record<string, string>) => {
       /** ELK writes into what it is given, and the tries run side by side: each its own copy. */
+      const ends = ends_of(walled, opts["elk.direction"]);
       const room: ElkNode = {
-        id: box.id, children: ranked_kids.map((k) => ({ ...k })),
+        id: box.id, children: ranked_kids.map((k) => ({ ...k, ...(ends.has(k.id)
+          ? { layoutOptions: { "elk.layered.layering.layerConstraint": ends.get(k.id)! } } : {}) })),
         edges: [...edges, ...pulls].map((e) => ({ ...e })),
         ...(ports.length ? { ports: ports.map((p) => ({ ...p })) } : {}),
         layoutOptions: { "elk.padding": how.pad, "elk.spacing.nodeNode": String(UNIT),
@@ -599,6 +607,23 @@ function packed(goal: string, f: number, how: How): Record<string, string> {
 /** ELK's name for each wall. */
 const SIDES: Record<Side, string> = { top: "NORTH", bottom: "SOUTH", left: "WEST",
                                       right: "EAST" };
+
+/** **A card meeting the room's own port ranks at that end** (the outbox's Relay detoured round
+ *  Outbox to reach its out-port): on the output wall, last; on the input wall, first. Only the
+ *  room's own ports, and a card pulled to one end only. */
+function ends_of(walled: readonly (readonly [Id, Side, boolean])[],
+                 dir: string | undefined): Map<Id, string> {
+  const [first, last]: [Side, Side] | [] = dir === "RIGHT" ? ["left", "right"]
+    : dir === "DOWN" ? ["top", "bottom"] : [];
+  const out = new Map<Id, string>();
+  if (!first) return out;
+  for (const [kid, side] of walled.filter((w) => w[2])) {
+    const end = side === first ? "FIRST" : side === last ? "LAST" : undefined;
+    if (!end) continue;
+    out.set(kid, out.has(kid) && out.get(kid) !== end ? "" : end);
+  }
+  return new Map([...out].filter(([, end]) => end));
+}
 
 /** What keeps a main line straight: ELK's priorities for it. */
 const STRAIGHT = { "elk.layered.priority.straightness": "10",

@@ -2,11 +2,10 @@
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative, resolve, sep } from "node:path";
-import { fileURLToPath } from "node:url";
 import { parse, stringify } from "yaml";
-import { lens_of, NAMED_VIEWS, all_defs, alias_of, check, children, collect, diagram_kind,
-         domain_of, fold, is_model, package_of, path, read, review, say, session, setting_of, shown_name, wanted, write, type Collected, type Fault,
-         type Graph, type Id, type Leaf, type Log, type Storage } from "@mnd/core";
+import { lens_of, NAMED_VIEWS, all_defs, alias_of, check, children, diagram_kind,
+         domain_of, fold, is_model, package_of, path, read, review, say, session, setting_of, shown_name, write, type Fault,
+         type Graph, type Id, type Log, type Storage } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
 import { fixture, graph_file, GRAPH_NAMES, NAMES } from "@mnd/fixtures";
 import { draw, draw_svg, faults, outline, project } from "@mnd/views";
@@ -17,6 +16,8 @@ import { diagram_file, draft, lines_in, played, presentations, tour } from "./to
 import { held_in, is_facts, outside_of, selection_from } from "./from_facts";
 import { node_net } from "./ports";
 import { as_file, from_sysml, shape_of, to_sysml } from "./sysml";
+import { CATALOGUE, gathered, in_source, package_root } from "./folders";
+import { apply, set_list, type Brief } from "./sets";
 
 const USAGE = `mnd — the headless harness
 
@@ -65,6 +66,15 @@ const USAGE = `mnd — the headless harness
   mnd presentation draft <model.yaml> --from <diagram.yaml> [--as name] [--dry]
                                        a presentation seeded from a flow or sequence, added
   mnd presentation check <model.yaml>  collect its package and say what does not resolve
+  mnd set list                         the model sets: each one's models and diagrams
+  mnd set apply <set> <project> <folder> [--brief brief.yaml] [--dry] [--force]
+                [--budget n] [--wide n] [--focus a,b] [--pick a,b]
+                                       a set's models written from the project's facts: the
+                                       library opened by density, every diagram drawn (or
+                                       skipped, said why), the tours drafted; --dry plans only.
+                                       The brief says the system, scope and each model
+                                       (docs/tools/set.md); the dials change the density, open
+                                       units first, or pick the paths
   mnd collect <folder> [out.json]      a folder as a package: package.json, a .json file per
                                        definition, diagram files and markdown cards
                         [--bare]       keep the ids it says, as base's are kept
@@ -151,7 +161,8 @@ function flag(args: string[], name: string): string | undefined {
 
 /** The flags that take the argument after them. */
 const VALUED = ["--how", "--layer", "--from", "--with", "--unit", "--at", "--of", "--depth",
-                "--as", "--run", "--name", "--description", "--keep"];
+                "--as", "--run", "--name", "--description", "--keep", "--brief", "--budget",
+                "--wide", "--focus", "--pick"];
 
 /** The positional arguments. */
 function loose(args: string[]): string[] {
@@ -179,51 +190,7 @@ function pairs(args: string[]): Record<string, unknown> {
   return out;
 }
 
-/** Every file under a folder, by its path from it, skipping what is hidden. */
-function leaves(folder: string, at = folder): Leaf[] {
-  return readdirSync(at).flatMap((name): Leaf[] => {
-    if (name.startsWith(".") || name === "node_modules") return [];
-    const full = join(at, name);
-    if (statSync(full).isDirectory()) return leaves(folder, full);
-    return [{ path: relative(folder, full).split(sep).join("/"), text: readFileSync(full, "utf8") }];
-  });
-}
 
-/** A source folder collected, with every package it imports loaded first: a catalogue name from
- *  beside the catalogue, a path from the folder — itself a package file or a folder. */
-function gathered(folder: string, workspace: boolean, bare = false,
-                  seen = new Set<string>()): Collected {
-  /** A folder importing itself, or two importing each other, is read once. */
-  seen.add(resolve(folder));
-  const files = leaves(folder);
-  let over = fold([], FLOOR);
-  const notes: string[] = [];
-  for (const want of wanted(files)) {
-    const at = want.startsWith("./") ? resolve(folder, want)
-      : join(dirname(CATALOGUE), `${want}.json`);
-    if (seen.has(resolve(at))) continue;
-    const text = !existsSync(at) ? undefined
-      : statSync(at).isDirectory() ? gathered(at, false, false, seen).text
-      : readFileSync(at, "utf8");
-    if (text) over = joined(over, text);
-    else notes.push(`${want}: no such package; its names become plain definitions`);
-  }
-  const got = collect(basename(resolve(folder)), files, over,
-                      { bare, ...(workspace ? { root: over.root } : {}) });
-  return { ...got, notes: [...notes, ...got.notes] };
-}
-
-
-/** A package file's blocks and relations beside what a graph holds; an id already there stays. */
-function joined(graph: Graph, text: string): Graph {
-  const file = JSON.parse(text) as { graph?: Partial<Graph> };
-  return { ...graph, blocks: { ...file.graph?.blocks, ...graph.blocks },
-           edges: { ...file.graph?.edges, ...graph.edges } };
-}
-
-/** Where the packages catalogue lives, at the repo root. */
-const CATALOGUE = resolve(dirname(fileURLToPath(import.meta.url)),
-                          "../../../public/packages/index.json");
 
 async function main(argv: string[]): Promise<void> {
   const [verb, source, ...rest] = argv;
@@ -240,6 +207,10 @@ async function main(argv: string[]): Promise<void> {
   if (verb === "look") {
     if (!source) throw new Error("mnd look <folder>");
     console.log(looks(JSON.parse(gathered(resolve(source!), true).text).graph).join("\n"));
+    return;
+  }
+  if (verb === "set") {
+    sets(source!, rest);
     return;
   }
   if (verb === "fact" || verb === "draw" || verb === "presentation" || verb === "define") {
@@ -574,7 +545,7 @@ async function tool(verb: string, first: string, rest: string[]): Promise<void> 
       for (const file of files) {
         const notes = model_notes(file);
         faults += notes.length;
-        if (files.length > 1) console.log(relative(process.cwd(), file));
+        if (files.length > 1) console.log(relative(process.cwd(), file).split(sep).join("/"));
         for (const n of notes) console.log(`  ${n}`);
         for (const w of [...unvisited(file), ...on_treemap(file)]) console.log(`  warning: ${w}`);
       }
@@ -582,6 +553,59 @@ async function tool(verb: string, first: string, rest: string[]): Promise<void> 
       if (faults) process.exit(1);
     } else fail(`no presentation command ${first}: list, draft, check`, 2);
   } catch (e) { fail(e); }
+}
+
+/** **`set list|apply`** (sets-plan.md): the sets, or one applied to a project; the report
+ *  printed, and a `check` of the folder after. */
+function sets(sub: string, rest: string[]): void {
+  if (sub === "list") {
+    console.log(set_list());
+    return;
+  }
+  const [name, project, folder] = loose(rest);
+  if (sub !== "apply" || !name || !project || !folder) {
+    console.error("  mnd set list | mnd set apply <set> <project> <folder> [--brief b.yaml] [--dry]");
+    process.exit(2);
+  }
+  const list = (k: string) => flag(rest, k)?.split(",").map((x) => x.trim()).filter(Boolean);
+  /** A dial's number; one that is no whole number above 0 refused (review: NaN opened nothing). */
+  const num = (k: string) => {
+    const said = flag(rest, k);
+    if (said === undefined) return undefined;
+    if (!/^[1-9]\d*$/.test(said)) {
+      console.error(`  --${k} takes a whole number above 0, not "${said}"`);
+      process.exit(2);
+    }
+    return Number(said);
+  };
+  const brief = flag(rest, "brief");
+  try {
+    const report = apply(name!, project!, folder!, {
+      ...(brief ? { brief: read_brief(brief) } : {}),
+      budget: num("budget"), wide: num("wide"), focus: list("focus"), pick: list("pick"),
+      force: rest.includes("--force"), dry: rest.includes("--dry") },
+      (f) => JSON.parse(gathered(resolve(f), true).text).graph as Graph);
+    console.log(report.join("\n"));
+    if (rest.includes("--dry")) return;
+    // The folder checked at once: what check would say, said now
+    const said = gathered(resolve(folder!), true).notes;
+    for (const n of said) console.log(`  ${n}`);
+    console.log(said.length ? `${said.length} to fix (check says the same)` : "check: clean");
+    if (said.length) process.exitCode = 1;
+  } catch (e) {
+    console.error(`  ${e instanceof Error ? e.message : String(e)}`);
+    process.exit(1);
+  }
+}
+
+/** A brief file, its YAML error said with the usual cause. */
+function read_brief(file: string): Brief {
+  try {
+    return (parse(readFileSync(file, "utf8")) ?? {}) as Brief;
+  } catch (e) {
+    throw new Error(`${file} is no YAML brief: ${e instanceof Error ? e.message.split("\n")[0] : e}`
+      + ` (a value holding ": " is quoted: description: "a: b")`);
+  }
 }
 
 /** The model files of a folder (`type: model`), in collect's order. */
@@ -638,19 +662,6 @@ function looks(graph: Graph): string[] {
     by.set(key, [...(by.get(key) ?? []), `${shown_name(graph, b.id)}${b.def ? " (definition)" : ""}`]);
   }
   return [...by].map(([hue, names]) => `${hue}: ${[...new Set(names)].sort().join(", ")}`);
-}
-
-/** Whether a file would sit in a source folder. */
-function in_source(file: string): boolean {
-  try { package_root(resolve(file)); return true; } catch { return false; }
-}
-
-/** The source folder a file sits in: the nearest folder above it holding a `package.json`. */
-function package_root(file: string): string {
-  for (let at = dirname(file); ; at = dirname(at)) {
-    if (existsSync(join(at, "package.json"))) return at;
-    if (dirname(at) === at) throw new Error(`${file} is in no source folder`);
-  }
 }
 
 // Anything thrown is said in one line, never as a trace

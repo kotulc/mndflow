@@ -1,0 +1,17 @@
+# The data model alone: its records, their fields and keys.
+name: data
+description: The records the system keeps, their fields and how they refer to each other.
+models:
+  - name: Data
+    holds: classes
+    intent: The records the system keeps and how they refer to each other.
+    diagrams:
+      - name: "{model} entities"
+        kind: entity
+        from: keyed
+        intent: How the records are stored and keyed to each other.
+      - name: "{model} classes"
+        kind: class
+        from: classes
+        unless: "{model} entities"
+        intent: The data classes, their fields and what each refers to.
