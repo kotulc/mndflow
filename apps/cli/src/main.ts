@@ -547,7 +547,9 @@ async function tool(verb: string, first: string, rest: string[]): Promise<void> 
         faults += notes.length;
         if (files.length > 1) console.log(relative(process.cwd(), file).split(sep).join("/"));
         for (const n of notes) console.log(`  ${n}`);
-        for (const w of [...unvisited(file), ...on_treemap(file)]) console.log(`  warning: ${w}`);
+        for (const w of [...unvisited(file), ...on_treemap(file), ...below_bar(file)]) {
+          console.log(`  warning: ${w}`);
+        }
       }
       console.log(faults ? `${faults} to fix` : "clean");
       if (faults) process.exit(1);
@@ -622,6 +624,28 @@ function on_treemap(model: string): string[] {
     .filter((s) => !s.show && ((s.steps ?? []) as { relation?: string }[]).some((t) => t.relation))
     .map((s) => `${p.name} › ${s.title}: steps lines on the treemap, which draws none; `
       + "show a diagram (the context) for them, or mark the parts"));
+}
+
+/** **The quality bar** (iteration-plan.md *Presentations first*): what a tour a new user plays
+ *  should have, each miss a warning. A drafted sentence (`a → b: name.`) is still to be written;
+ *  a stop says something step by step unless it leads `into` another tour; its summary says more
+ *  than its title; a tour opens at least one diagram. */
+function below_bar(model: string): string[] {
+  const out: string[] = [];
+  for (const p of presentations(model)) {
+    if (p.stops.length && !p.stops.some((s) => s.show)) out.push(`${p.name}: shows no diagram`);
+    for (const s of p.stops) {
+      const at = `${p.name} › ${s.title}`;
+      const steps = (s.steps ?? []) as { text?: string }[];
+      if (!steps.length && !s.into) out.push(`${at}: no steps, and leads into no tour`);
+      if (s.summary && s.title && s.summary.trim().toLowerCase().replace(/\.$/, "")
+          === s.title.trim().toLowerCase()) out.push(`${at}: its summary repeats its title`);
+      const drafted = steps.filter((t) => / → .*\.$/.test(t.text ?? "")).length;
+      if (drafted) out.push(`${at}: ${drafted} step${drafted > 1 ? "s" : ""} still in drafted `
+        + "words (`a → b: name.`); say what each lights");
+    }
+  }
+  return out;
 }
 
 /** What collecting a model's package says of that model's file. */

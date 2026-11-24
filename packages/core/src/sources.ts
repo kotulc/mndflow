@@ -764,9 +764,13 @@ function overview(ctx: Ctx, id: Id, e: Entry): void {
         const bare = s.show && w.startsWith(`${s.show}${STEP}`) ? w.slice(s.show.length + 1) : w;
         return shown.map((x) => path_to(ctx.graph, bare, x)).find((x): x is Id => x !== undefined);
       };
+      /** **A line by its name too** (round 11: two messages between one pair, a step could not
+       *  say which): `a -> b: name` lights the one so named. */
       const line = (word: string) => {
+        const [pair, ...rest] = word.split(": ");
+        const name = rest.join(": ").trim() || undefined;
         let ends;
-        try { ends = edge_of(word); } catch { said(`${where}: ${word} is no relation`); return; }
+        try { ends = edge_of(pair!); } catch { said(`${where}: ${word} is no relation`); return; }
         /** An end in the shown diagram: a block under it, else a port of the diagram itself, as
          *  its own file names it (`ping -> urls`). */
         const in_shown = (w: string): { at: Id; part?: Id } | undefined => {
@@ -787,7 +791,8 @@ function overview(ctx: Ctx, id: Id, e: Entry): void {
         const hit = from && to ? Object.values(ctx.graph.edges).find((x) =>
           meets(x.from, x.fromPort, from.at) && meets(x.to, x.toPort, to.at)
           && (!from.part || x.fromPort === from.part)
-          && (!to.part || x.toPort === to.part) && within.has(x.from)) : undefined;
+          && (!to.part || x.toPort === to.part) && within.has(x.from)
+          && (!name || x.name === name)) : undefined;
         if (!hit) said(`${where}: ${word} is no relation the model has${show ? ` or ${s.show} draws` : ""}; `
           + "add it, or name its ends as the file holding it does (a part of a part: `outer.inner`)");
         return hit?.id;

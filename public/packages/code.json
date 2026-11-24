@@ -56,14 +56,7 @@
         "parent": "code.dir.blocks",
         "name": "class",
         "type": "block",
-        "def": {
-          "attributes": [
-            {
-              "name": "methods",
-              "type": "text"
-            }
-          ]
-        },
+        "def": {},
         "description": "A class: its fields are its attributes, its methods said by their signatures, what it extends is its type.",
         "order": 2,
         "settings": {

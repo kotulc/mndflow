@@ -117,6 +117,7 @@ Healthchecks from scratch with `set apply` and a brief (samples/trial/brief.md; 
 | 8 | 11 / ~26 | brief `externals`, `parts`; dry run shows brief keys and what each path runs; clash names counted over the library only; a picked twin path said; renamed parts' old files removed |
 | 9 | 16 / 22 | paths spread over parts; `--pick` by last word, unknown refused; brief `actors`; calls into a shared helper part left out of sequences; YAML hint |
 | 10 | ~19 / 21 | data diagrams named for their model (a model named `Records` shadowed the diagram) |
+| 11 | ~21 / 14 | (with the quality bar; both `presentation check` clean, no warnings, one apply each, no re-run) `parts` names a block below by its holder (`api.management`); the report says the parts left out of the overview and a dry run's scope; a step picks one of a pair's lines by name (`a -> b: name`), drafted so where a pair repeats; a drafted entity stop marks its entities; set.md: quote `: ` values, an entity's keys come from fields |
 
 ## Review (2026-11-23)
 

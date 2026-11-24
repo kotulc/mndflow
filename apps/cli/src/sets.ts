@@ -113,11 +113,18 @@ export function apply(name: string, project: string, folder: string, asked: Aske
   // The library: the units tree opened by density
   const units = fact("units", [...scope, "--depth", "8"]) as Unit[];
   const library = opened(units, { budget: asked.budget, wide: asked.wide, focus: asked.focus });
-  report.push(...described(library, brief.parts ?? {}));
+  report.push(...described(library, brief.parts ?? {}, brief.scope));
   refuse_externals(library, brief.externals ?? {});
   report.push(`library: ${shown_count(library)} blocks; closed: ${closed_of(library)
     .slice(0, 8).join(", ") || "none"}`);
   report.push(`  parts (the brief's \`parts\` keys): ${tops_of(library).map((t) => t.name).join(", ")}`);
+  /** **What the overview leaves out, said** (round 11: small parts were silently absent). */
+  const tops = tops_of(library);
+  const small = tops.filter((t) => !big(tops).includes(t));
+  if (small.length) {
+    report.push(`  left out of the overview (under ${SMALL * 100}% of the lines): `
+      + small.map((t) => t.name).join(", "));
+  }
 
   // The data: classes with fields, the referenced first; what a main path is about
   const needs = (h: Recipe["holds"]) => set.models.some((m) => m.holds === h);
@@ -179,7 +186,8 @@ export function apply(name: string, project: string, folder: string, asked: Aske
   // The tours, drafted from what was written
   // Kept tours stay as written; a model without one is drafted, its parts said by the library
   for (const f of tour(folder, false, describer(library, classes))) writeFileSync(f.file, f.text);
-  report.push("tours drafted: rewrite their words (`presentation list`), then `check`");
+  report.push("tours drafted: rewrite their words (`presentation list`; presentations.md *Writing "
+    + "one*), then `presentation check <folder>`");
   return report;
 }
 
@@ -274,14 +282,35 @@ function stale(folder: string, set: string, planned: Planned[], brief: Brief,
   return gone.map((f) => `removed ${f}, a model this set no longer plans, and its diagrams`);
 }
 
-/** **The brief's words for the top parts** (round 8: package names said nothing): each named
- *  part of the overview takes its description and, where given, a plainer name; a name that
- *  is no top part is said. */
-function described(library: Unit[], parts: NonNullable<Brief["parts"]>): string[] {
+/** **The brief's words for the library's blocks** (round 8: package names said nothing): each
+ *  named block takes its description and, where given, a plainer name. A top part is named as
+ *  it is; **a block below by its holder too** (round 11: `api management` read as code),
+ *  `api.management` or `api management`. A name no block or several answer to is said. */
+function described(library: Unit[], parts: NonNullable<Brief["parts"]>,
+                   scope?: string): string[] {
   const tops = top_units(library);
+  const all: Unit[] = [];
+  const walk = (u: Unit) => {
+    all.push(u);
+    (u.parts ?? []).forEach(walk);
+  };
+  library.forEach(walk);
+  const said_as = (u: Unit) => {
+    const at = (u.unit ?? u.name).split(".").slice(-2);
+    return [at.join("."), at.join(" ")];
+  };
   return Object.entries(parts).flatMap(([name, said]) => {
-    const u = tops.find((t) => t.name === name);
-    if (!u) return [`  note: the brief's part ${name} is no top part: ${tops.map((t) => t.name).join(", ")}`];
+    const below = all.filter((x) => !tops.includes(x) && said_as(x).includes(name));
+    const u = tops.find((t) => t.name === name) ?? (below.length === 1 ? below[0] : undefined);
+    if (below.length > 1 && !u) {
+      return [`  note: the brief's part ${name} names ${below.length} blocks: `
+        + below.map((x) => x.unit ?? x.name).join(", ")];
+    }
+    if (!u) {
+      return [`  note: the brief's part ${name} names no block${scope ? ` in ${scope}` : ""}; `
+        + `top parts: ${tops.map((t) => t.name).join(", ")}; a block below by its holder `
+        + "(`api.management`)"];
+    }
     const { name: plain, description } = typeof said === "string" ? { name: undefined, description: said }
       : said;
     if (description) u.description = description;

@@ -3,10 +3,14 @@
   "name": "class",
   "type": "block",
   "description": "A class: its fields are its attributes, its methods said by their signatures, what it extends is its type.",
-  "def": {
-    "attributes": [
-      { "name": "methods", "type": "text" }
-    ]
-  },
-  "settings": { "card": { "icon": "code_class", "face": "table" }, "style": { "hue": 300 } }
+  "def": {},
+  "settings": {
+    "card": {
+      "icon": "code_class",
+      "face": "table"
+    },
+    "style": {
+      "hue": 300
+    }
+  }
 }

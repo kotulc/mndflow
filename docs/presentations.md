@@ -105,7 +105,7 @@ presentations:
 | `summary` | stop | yes | one line under the title |
 | `into` | stop | no | a sub model's presentation this stop leads into; the stop's `at` (or `show`) is that sub model's own block |
 | `steps` | stop | no | in order |
-| `relation` | step | one of | a relation of the model, `from -> to`, drawn on a diagram; on a treemap its two ends ringed |
+| `relation` | step | one of | a relation of the model, `from -> to`, drawn on a diagram; on a treemap its two ends ringed; `from -> to: name` picks one of several lines between a pair by its name (a sequence calling twice) |
 | `mark` | step | one of | a block ringed; inside a shown diagram, named through it (`Entities.Check`, `Context.api`) |
 | `text` | step | yes | one sentence |
 
@@ -146,10 +146,25 @@ presentations:
 | **the top tour**, in the first model (the overview) | its own stops, the first saying what the system is (the package's description, never the model's again); then one per other model, shown, leading `into` that model's first presentation, no line stepped |
 
 - **additive**: a model's tour of that name is kept unless `--force`; any draft that adds faults is taken back, every file left as it was
-- **`check` warns**, never failing (`presentation check <model or folder>`): of a diagram of the model no stop shows (a use of a library part is no diagram here), and of a stop stepping lines with no `show`, on a treemap that draws none (2026-11-22)
+- **`check` warns**, never failing (`presentation check <model or folder>`): of a diagram of the model no stop shows (a use of a library part is no diagram here), and of a stop stepping lines with no `show`, on a treemap that draws none (2026-11-22); and **below the quality bar** (2026-11-23, *Writing one*): a tour showing no diagram, a stop with no steps leading into no tour, a summary repeating its title, a step still in drafted words
 - **`list` reads as played** (round 6): each stop's place, `at`, `show`, `into`, summary and every step's sentence with what it lights
 - a step's sentence is drafted as `from → to: name.`
 
+
+## Writing one
+
+**The arc** of a top tour: what the system is for → who uses it → its main use, step by step → what it keeps → where to go next (`into` each model's tour). A model's own tour: what the model shows → each diagram, stepped in the order things happen.
+
+| Do | Not |
+|---|---|
+| one point a stop; its title says it | a stop per diagram for its own sake |
+| a summary that adds to the title | the title said again |
+| each step a plain sentence about what is lit | the drafted `a → b: name.` left in |
+| step lines in the order things happen | every line of a diagram, incidental calls too |
+| show a diagram for lines; mark parts on a treemap | lines stepped on a treemap (it draws none) |
+| end a stop with no steps only where it leads `into` a tour | an empty stop |
+
+`presentation check` warns of each *Not* it can see.
 
 ## Rules
 
@@ -190,4 +205,4 @@ presentations:
 
 **Settled 2026-11-12**: steps play on a timer and a click shows the next one at once; the pace is configurable (`pace`, default 1.7 s, `0` for on click); a stop may open a diagram (`show`); About's groups are configurable (`about:`), holding any blocks, definitions, presentations or entries.
 
-**Decided (the user, 2026-11-21)**: one guided tour over the whole model, through its sub-models and their diagrams, drafted by the agent's tools (iteration-plan.md *Next* 2c): the top tour overviews each sub-model and leads `into` its own tour; what it stops at (the library included) is the agent's choice; the draft is saved to the model files and `check` warns of a diagram no tour visits. **Built 2026-11-21**: `mnd presentation draft <folder>` (*Drafted* below); a stop showing a diagram fits it whole with the player's room below. **Open**: the quality bar and story guide (iteration-plan.md *Presentations first*, 3b).
+**Decided (the user, 2026-11-21)**: one guided tour over the whole model, through its sub-models and their diagrams, drafted by the agent's tools (iteration-plan.md *Next* 2c): the top tour overviews each sub-model and leads `into` its own tour; what it stops at (the library included) is the agent's choice; the draft is saved to the model files and `check` warns of a diagram no tour visits. **Built 2026-11-21**: `mnd presentation draft <folder>` (*Drafted* below); a stop showing a diagram fits it whole with the player's room below. **Built 2026-11-23**: the quality bar and story guide (*Writing one*).

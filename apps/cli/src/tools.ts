@@ -299,8 +299,20 @@ function model_tour(r: Read, at: string, describe?: Describe): Record<string, un
     /** An end the diagram holds is named in it; one it draws from the model, plainly. */
     const held = new Set(d.form.blocks.map((b) => b.name));
     const end = (x: string) => (held.has(x) ? `${n}.${x}` : x);
-    const steps = d.form.relations.map((e): Step => ({
-      relation: `${end(e.from)} -> ${end(e.to)}`, text: sentence(e) }));
+    /** A pair drawn more than once is stepped by each line's name (round 11). */
+    const pairs = d.form.relations.map((e) => `${e.from}
+${e.to}`);
+    const twice = (e: { from: string; to: string }) =>
+      pairs.filter((p) => p === `${e.from}
+${e.to}`).length > 1;
+    const lines = d.form.relations.map((e): Step => ({
+      relation: `${end(e.from)} -> ${end(e.to)}${twice(e) && e.name ? `: ${e.name}` : ""}`,
+      text: sentence(e) }));
+    /** **A diagram whose file holds no lines marks its blocks** (round 11: an entity draws its
+     *  keys from its fields, so its drafted stop had no steps). */
+    const steps = lines.length ? lines : (d.form.blocks.filter((b) => b.type !== "note") as
+      { name: string; of?: string; description?: string }[])
+      .map((b): Step => ({ mark: `${n}.${b.name}`, text: part_said(b, describe) }));
     return { title: n, at: n, show: n, summary: String(d.said["description"] ?? n),
              ...(steps.length ? { steps } : {}) };
   })];
